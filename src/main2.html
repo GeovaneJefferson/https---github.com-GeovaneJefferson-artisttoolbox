@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Design Editor UI</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19.1/dist/lil-gui.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <div class="min-h-screen bg-gray-100 flex">
+    <div class="bg-white rounded-xl shadow-lg w-full flex flex-col overflow-hidden">
+
+      <!-- Top Navigation/Header Bar -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <div class="flex items-center space-x-2">
+          <div class="bg-gray-200 p-2 rounded-full">
+            <!-- Placeholder for logo/icon -->
+            <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v1a1 1 0 001 1h3a1 1 0 001-1v-1z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10a2 2 0 012-2h1a2 2 0 012 2v2a2 2 0 01-2 2h-1a2 2 0 01-2-2v-2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10a2 2 0 012-2h1a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2v-2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16a2 2 0 012-2h1a2 2 0 012 2v2a2 2 0 01-2 2h-1a2 2 0 01-2-2v-2z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 16a2 2 0 012-2h1a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2v-2z"></path></svg>
+          </div>
+          <div>
+            <h1 class="text-sm font-semibold">3D Boy Character</h1>
+            <p class="text-xs text-gray-500">3D Design Project</p>
+          </div>
+          <svg class="w-4 h-4 text-gray-500 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button class="bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-600">Export</button>
+
+          <div class="flex items-center space-x-2 ml-4">
+            <div class="flex -space-x-2">
+              <img class="w-8 h-8 rounded-full border-2 border-white" src="https://via.placeholder.com/150/FF0000/FFFFFF?text=A" alt="Avatar 1">
+              <img class="w-8 h-8 rounded-full border-2 border-white" src="https://via.placeholder.com/150/0000FF/FFFFFF?text=B" alt="Avatar 2">
+            </div>
+            <button class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-200">Share</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-1">
+        <!-- Left Sidebar (Project Explorer) -->
+        <div class="w-64 bg-white border-r border-gray-200 flex flex-col">
+          <div class="p-4 flex-1 overflow-y-auto">
+            <div class="flex space-x-2 mb-4">
+              <button class="px-3 py-1.5 text-sm font-medium text-blue-600 border-b-2 border-blue-600">Scene</button>
+              <button class="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700">Assets</button>
+            </div>
+
+            <div>
+              <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Texture Maps</h3>
+              
+              <!-- Invert Normal Checkbox -->
+              <div class="flex items-center space-x-2 mb-4">
+                  <input type="checkbox" id="invertNormalY" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                  <label for="invertNormalY" class="text-sm text-gray-700">Invert Normal Map Y</label>
+              </div>
+
+              <!-- Map Grid -->
+              <div class="grid grid-cols-2 gap-3">
+                  <!-- Original Map -->
+                  <div class="space-y-1">
+                      <canvas id="originalTextureCanvas" class="w-full h-24 bg-gray-200 rounded-md border border-gray-300"></canvas>
+                      <label class="text-xs text-gray-600 font-medium">Original</label>
+                      <div class="flex items-center space-x-1">
+                          <input type="checkbox" id="exportOriginalTexture" class="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                          <label for="exportOriginalTexture" class="text-xs text-gray-500">Export</label>
+                      </div>
+                  </div>
+                  <!-- Normal Map -->
+                  <div class="space-y-1">
+                      <canvas id="normalMapCanvas" class="w-full h-24 bg-gray-200 rounded-md border border-gray-300"></canvas>
+                      <label class="text-xs text-gray-600 font-medium">Normal</label>
+                      <div class="flex items-center space-x-1">
+                          <input type="checkbox" id="exportNormalMap" class="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                          <label for="exportNormalMap" class="text-xs text-gray-500">Export</label>
+                      </div>
+                  </div>
+                  <!-- Roughness Map -->
+                  <div class="space-y-1">
+                      <canvas id="roughnessMapCanvas" class="w-full h-24 bg-gray-200 rounded-md border border-gray-300"></canvas>
+                      <label class="text-xs text-gray-600 font-medium">Roughness</label>
+                      <div class="flex items-center space-x-1">
+                          <input type="checkbox" id="exportRoughnessMap" class="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                          <label for="exportRoughnessMap" class="text-xs text-gray-500">Export</label>
+                      </div>
+                  </div>
+                  <!-- AO Map -->
+                  <div class="space-y-1">
+                      <canvas id="aoMapCanvas" class="w-full h-24 bg-gray-200 rounded-md border border-gray-300"></canvas>
+                      <label class="text-xs text-gray-600 font-medium">AO</label>
+                      <div class="flex items-center space-x-1">
+                          <input type="checkbox" id="exportAOMap" class="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                          <label for="exportAOMap" class="text-xs text-gray-500">Export</label>
+                      </div>
+                  </div>
+                  <!-- Metallic Map -->
+                  <div class="space-y-1">
+                      <canvas id="metallicMapCanvas" class="w-full h-24 bg-gray-200 rounded-md border border-gray-300"></canvas>
+                      <label class="text-xs text-gray-600 font-medium">Metallic</label>
+                      <div class="flex items-center space-x-1">
+                          <input type="checkbox" id="exportMetallicMap" class="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                          <label for="exportMetallicMap" class="text-xs text-gray-500">Export</label>
+                      </div>
+                  </div>
+                  <!-- Displacement Map -->
+                  <div class="space-y-1">
+                      <canvas id="displacementMapCanvas" class="w-full h-24 bg-gray-200 rounded-md border border-gray-300"></canvas>
+                      <label class="text-xs text-gray-600 font-medium">Displacement</label>
+                      <div class="flex items-center space-x-1">
+                          <input type="checkbox" id="exportDisplacementMap" class="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                          <label for="exportDisplacementMap" class="text-xs text-gray-500">Export</label>
+                      </div>
+                  </div>
+                </div>
+            </div>
+          </div>
+
+          <div class="mt-auto p-4 border-t border-gray-200">
+            <div class="relative">
+              <input type="text" placeholder="Search..." class="w-full pl-8 pr-4 py-2 rounded-md bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400 text-sm">
+              <svg class="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content Area (3D Viewport) -->
+        <div id="threejs-container" class="flex-1 bg-gray-50 flex flex-col items-center justify-center relative">
+          <!-- Three.js Canvas will be appended here -->
+          <div id="info" class="absolute top-2 left-2 text-xs text-gray-600 bg-white bg-opacity-75 px-2 py-1 rounded-md z-10">
+            <a href="https://threejs.org" target="_blank" rel="noopener" class="text-blue-500 hover:underline">three.js</a> - Random UV and Disolve
+          </div>
+
+          <div id="threejs-canvas-wrapper" class="w-full h-full"></div>
+
+          <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-end space-x-2">
+            <div class="relative">
+              <button id="addObjectsBtn" class="bg-white px-4 py-2 rounded-md shadow-md flex items-center space-x-2 text-sm text-gray-700 hover:bg-gray-100">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                <span>Add 3D objects</span>
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </button>
+
+              <!-- Dropdown Menu (initially hidden, shown via JavaScript) -->
+              <div id="addObjectsDropdown" class="absolute bottom-full mb-2 bg-white rounded-lg shadow-lg py-2 w-56 hidden">
+                <button class="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.523 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.523 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
+                  <span>Add 3D objects</span>
+                </button>
+                <button class="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L20 20M6 10a2 2 0 11-4 0 2 2 0 014 0zm2 0a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                  <span>Add photos or videos</span>
+                </button>
+                <button class="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                  <span>Add files (docs, txt..)</span>
+                </button>
+              </div>
+            </div>
+
+            <button class="bg-white px-4 py-2 rounded-md shadow-md flex items-center space-x-2 text-sm text-gray-700 hover:bg-gray-100">
+              <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+              <span>Inspiration</span>
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+            <div class="flex items-center space-x-2 bg-white px-3 py-2 rounded-md shadow-md text-sm text-gray-700">
+              <span class="font-medium">Brainwave 2.5</span>
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+
+            <button class="bg-white p-2 rounded-md shadow-md text-gray-700 hover:bg-gray-100">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Sidebar (Properties/Settings) -->
+        <div class="w-80 bg-white border-l border-gray-200 flex flex-col p-4 space-y-6 overflow-y-auto">
+          <div class="flex space-x-2">
+            <button class="px-3 py-1.5 text-sm font-medium text-blue-600 border-b-2 border-blue-600">Design</button>
+            <button class="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700">Animation</button>
+          </div>
+
+          <!-- Materials Section -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-semibold text-gray-700">Color Palette</h3>
+            </div>
+            <div class="grid grid-cols-4 gap-3">
+              <div class="w-14 h-14 rounded-md bg-gray-200 flex items-center justify-center border border-gray-300">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-gray-300 to-gray-500"></div>
+              </div>
+              <div class="w-14 h-14 rounded-md bg-gray-200 flex items-center justify-center border border-gray-300">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-300 to-orange-500"></div>
+              </div>
+              <div class="w-14 h-14 rounded-md bg-gray-200 flex items-center justify-center border border-gray-300">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-black"></div>
+              </div>
+              <div class="w-14 h-14 rounded-md bg-gray-200 flex items-center justify-center border border-gray-300">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-black to-gray-900"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Styles Section -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-semibold text-gray-700">Styles</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-lg overflow-hidden border border-gray-300 cursor-pointer hover:border-blue-500">
+                <img src="https://placehold.co/120x80/D1D5DB/9CA3AF?text=Style+1" alt="Style 1" class="w-full h-auto">
+              </div>
+              <div class="rounded-lg overflow-hidden border border-gray-300 cursor-pointer hover:border-blue-500">
+                <img src="https://placehold.co/120x80/9CA3AF/D1D5DB?text=Style+2" alt="Style 2" class="w-full h-auto">
+              </div>
+            </div>
+          </div>
+
+          <!-- Background Section -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-semibold text-gray-700">Background</h3>
+            </div>
+            <div class="flex items-center space-x-3">
+              <div class="flex-1">
+                <input type="text" value="#FBF7F7" class="w-full px-3 py-2 rounded-md bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400 text-sm">
+              </div>
+              <div class="relative w-16">
+                <input type="range" min="0" max="100" value="100" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                <span class="absolute right-0 -top-6 text-xs text-gray-600">100%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Camera Section -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-semibold text-gray-700">Camera</h3>
+            </div>
+            <div class="flex space-x-2">
+              <button class="flex-1 px-3 py-1.5 rounded-md bg-blue-100 text-blue-700 text-sm font-medium">Isometric</button>
+              <button class="flex-1 px-3 py-1.5 rounded-md bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200">Perspective</button>
+            </div>
+          </div>
+
+          <!-- Distortion Section -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-semibold text-gray-700">Distortion</h3>
+            </div>
+            <div class="flex items-center space-x-3">
+              <div class="flex-1">
+                <input type="range" min="0" max="100" value="80" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+              </div>
+              <span class="text-sm text-gray-600">8s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Three.js global variables
+    let camera, scene, renderer, dirLight, ground, gui;
+    let material, materialIn, uniforms, uniformsIn; // For ShaderBall materials and their custom uniforms
+    let controls;
+    let container; // Reference to the div where the canvas will be appended
+
+    // GLSL shader snippets for the custom dissolve effect
+    const randomUV = `
+			uniform sampler2D noiseMap;
+			uniform float enableRandom;
+			uniform float useNoiseMap;
+			uniform float debugNoise;
+			uniform float useSuslikMethod;
+
+			float directNoise(vec2 p){
+			    vec2 ip = floor(p);
+			    vec2 u = fract(p);
+			    u = u*u*(3.0-2.0*u);
+
+			    float res = mix( // Corrected bilinear interpolation syntax
+			        mix(rand(ip), rand(ip+vec2(1.0,0.0)), u.x),
+			        mix(rand(ip+vec2(0.0,1.0)), rand(ip+vec2(1.0,1.0)), u.x), u.y);
+			    return res*res;
+			}
+
+			float sum( vec4 v ) { return v.x+v.y+v.z; }
+
+			vec4 textureNoTile( sampler2D mapper, in vec2 uv ){
+
+			    // sample variation pattern
+			    float k = 0.0;
+			    if( useNoiseMap == 1.0 ) k = texture2D( noiseMap, 0.005*uv ).x;
+			    else k = directNoise( uv );
+
+			    // compute index
+			    float index = k*8.0;
+			    float f = fract( index );
+			    float ia = 0.0;
+			    float ib = 0.0;
+
+			    if( useSuslikMethod == 1.0 ){
+			    	ia = floor(index+0.5);
+			    	ib = floor(index);
+			    	f = min(f, 1.0-f)*2.0;
+			    } else {
+			    	ia = floor( index );
+			    	ib = ia + 1.0;
+			    }
+
+			    // offsets for the different virtual patterns
+			    vec2 offa = sin(vec2(3.0,7.0)*ia); // can replace with any other hash
+			    vec2 offb = sin(vec2(3.0,7.0)*ib); // can replace with any other hash
+
+			    // compute derivatives for mip-mapping
+			    vec2 dx = dFdx(uv);
+			    vec2 dy = dFdy(uv);
+
+			    // sample the two closest virtual patterns
+			    vec4 cola = textureGrad( mapper, uv + offa, dx, dy );
+			    vec4 colb = textureGrad( mapper, uv + offb, dx, dy );
+			    if( debugNoise == 1.0 ){
+			    	cola = vec4( 0.1,0.0,0.0,1.0 );
+			    	colb = vec4( 0.0,0.0,1.0,1.0 );
+			    }
+
+			    // interpolate between the two virtual patterns
+			    return mix( cola, colb, smoothstep(0.2,0.8,f-0.1*sum(cola-colb)) );
+
+			}`;
+
+    // Helper function for directNoise (missing in original snippet, but implied)
+    // This is a very basic pseudo-random number generator for GLSL
+    const rand = `
+        float rand(vec2 co){
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+    `;
+
+    const map_fragment = `
+			#ifdef USE_MAP
+
+				if( enableRandom == 1.0 ) diffuseColor *= textureNoTile( map, vMapUv );
+				else diffuseColor *= texture2D( map, vMapUv );
+
+			#endif
+    `;
+
+    const alphamap_pars_fragment = `
+			#ifdef USE_ALPHAMAP
+				uniform sampler2D alphaMap;
+				uniform float disolve;
+				uniform float threshold;
+			#endif
+    `;
+
+    const alphamap_fragment = `
+			#ifdef USE_ALPHAMAP
+			    float vv = texture2D( alphaMap, vAlphaMapUv ).g;
+			    float r = disolve * (1.0 + threshold * 2.0) - threshold;
+			    float mixf = clamp((vv - r)*(1.0/threshold), 0.0, 1.0);
+				diffuseColor.a = mixf;
+			#endif
+    `;
+
+    function init() {
+      container = document.getElementById('threejs-canvas-wrapper');
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 20);
+      camera.position.set(-0.8, 0.6, 1.5);
+
+      scene = new THREE.Scene();
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(width, height);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.7;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.VSMShadowMap;
+      container.appendChild(renderer.domElement);
+
+      dirLight = new THREE.DirectionalLight(0xFFFFFF, 3);
+      dirLight.position.set(-0.5, 1, 0.8);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+      const shadow = dirLight.shadow;
+      shadow.mapSize.width = shadow.mapSize.height = 1024;
+      shadow.radius = 16;
+      shadow.bias = -0.0005;
+      const shadowCam = shadow.camera, s = 2;
+      shadowCam.near = 0.5;
+      shadowCam.far = 3;
+      shadowCam.right = shadowCam.top = s;
+      shadowCam.left = shadowCam.bottom = -s;
+      // debug shadow
+      //scene.add( new THREE.CameraHelper(shadowCam) );
+
+      // add ground plane
+      const plane = new THREE.PlaneGeometry(2, 2);
+      plane.rotateX(-Math.PI * 0.5);
+				ground = new THREE.Mesh( plane, new THREE.ShadowMaterial( { opacity: 0.5 } ) ); // Corrected from z to y
+      ground.receiveShadow = true;
+      ground.position.z = -0.5;
+      scene.add(ground);
+
+      // Note: The paths for textures and models are relative.
+      // Ensure 'textures/' and 'models/gltf/' directories exist relative to this HTML file.
+      const map = new THREE.TextureLoader().load('textures/jade.jpg');
+      map.colorSpace = THREE.SRGBColorSpace;
+      map.wrapS = map.wrapT = THREE.RepeatWrapping;
+      map.repeat.set(20, 20);
+      map.flipY = false;
+
+      const disolveMap = new THREE.TextureLoader().load('textures/shaderball_ds.jpg');
+      disolveMap.flipY = false;
+
+      const noise = new THREE.TextureLoader().load('textures/noise.png');
+
+      new THREE.RGBELoader()
+        .setPath('textures/equirectangular/')
+        .load('lobe.hdr', function (texture) {
+
+          texture.mapping = THREE.EquirectangularReflectionMapping;
+
+          scene.background = texture;
+          scene.environment = texture;
+          scene.backgroundBlurriness = 0.5;
+          scene.backgroundIntensity = 1.0;
+          scene.environmentIntensity = 1.5;
+
+          render();
+
+          // model
+
+          const loader = new THREE.GLTFLoader().setPath('models/gltf/');
+          loader.setDRACOLoader(new THREE.DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/v1/decoders/')); // Use a CDN path for Draco
+          loader.load('ShaderBall2.glb', function (gltf) {
+
+            const shaderBall = gltf.scene.children[0];
+
+            let i = shaderBall.children.length, n = 0;
+
+            while (i--) {
+
+              shaderBall.children[i].receiveShadow = true;
+              shaderBall.children[i].castShadow = true;
+              shaderBall.children[i].renderOrder = n++;
+
+            }
+
+            material = shaderBall.children[0].material;
+							material.map = map; // Assign the jade texture
+            material.alphaMap = disolveMap;
+            material.transparent = true;
+
+            materialIn = shaderBall.children[1].material;
+            materialIn.alphaMap = disolveMap;
+            materialIn.transparent = true;
+
+            material.onBeforeCompile = function (shader) {
+              shader.uniforms['disolve'] = { value: 0 };
+              shader.uniforms['threshold'] = { value: 0.2 };
+              shader.uniforms['noiseMap'] = { value: noise };
+              shader.uniforms['enableRandom'] = { value: 1 };
+              shader.uniforms['useNoiseMap'] = { value: 1 };
+              shader.uniforms['useSuslikMethod'] = { value: 0 };
+              shader.uniforms['debugNoise'] = { value: 0 };
+								shader.fragmentShader = shader.fragmentShader.replace('#include <clipping_planes_pars_fragment>', '#include <clipping_planes_pars_fragment>' + rand + randomUV); // Added rand helper
+              shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', map_fragment);
+              shader.fragmentShader = shader.fragmentShader.replace('#include <alphamap_pars_fragment>', alphamap_pars_fragment);
+              shader.fragmentShader = shader.fragmentShader.replace('#include <alphamap_fragment>', alphamap_fragment);
+              uniforms = shader.uniforms;
+            };
+
+            materialIn.onBeforeCompile = function (shader) {
+              shader.uniforms['disolve'] = { value: 0 };
+              shader.uniforms['threshold'] = { value: 0.2 };
+              shader.fragmentShader = shader.fragmentShader.replace('#include <alphamap_pars_fragment>', alphamap_pars_fragment);
+              shader.fragmentShader = shader.fragmentShader.replace('#include <alphamap_fragment>', alphamap_fragment);
+              uniformsIn = shader.uniforms;
+            };
+
+            scene.add(shaderBall);
+
+            render();
+
+            createGUI(); // Placeholder for GUI creation
+
+          }, undefined, function (error) {
+            console.error('An error happened loading the GLTF model:', error);
+            // Optionally display an error message to the user
+            const errorDiv = document.createElement('div');
+            errorDiv.textContent = 'Error loading 3D model. Check console for details.';
+            errorDiv.style.color = 'red';
+            errorDiv.style.position = 'absolute';
+            errorDiv.style.top = '50%';
+            errorDiv.style.left = '50%';
+            errorDiv.style.transform = 'translate(-50%, -50%)';
+            container.appendChild(errorDiv);
+          });
+
+        }, undefined, function (error) {
+          console.error('An error happened loading the HDR environment map:', error);
+          // Fallback if HDRI fails to load
+          scene.background = new THREE.Color(0x222222);
+          scene.environment = null;
+          render();
+        });
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.addEventListener('change', render); // use if there is no animation loop
+      controls.minDistance = 0.3;
+      controls.maxDistance = 10;
+      controls.target.set(0, 0.4, 0);
+      controls.update();
+
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function render() {
+      renderer.render(scene, camera);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      // controls.update(); // Only needed if controls.enableDamping is true
+      render();
+    }
+
+    function createGUI() {
+
+        const setting = {
+
+            get 'Enabled'() {
+
+                return uniforms.enableRandom.value ? true : false;
+
+            },
+            set 'Enabled'( v ) {
+
+                uniforms.enableRandom.value = v ? 1 : 0; render();
+
+            },
+
+            get 'UseNoiseMap'() {
+
+                return uniforms.useNoiseMap.value ? true : false;
+
+            },
+            set 'UseNoiseMap'( v ) {
+
+                uniforms.useNoiseMap.value = v ? 1 : 0; render();
+
+            },
+
+            get 'SuslikMethod'() {
+
+                return uniforms.useSuslikMethod.value ? true : false;
+
+            },
+            set 'SuslikMethod'( v ) {
+
+                uniforms.useSuslikMethod.value = v ? 1 : 0; render();
+
+            },
+
+            get 'DebugNoise'() {
+
+                return uniforms.debugNoise.value ? true : false;
+
+            },
+            set 'DebugNoise'( v ) {
+
+                uniforms.debugNoise.value = v ? 1 : 0; render();
+
+            },
+
+            // disolve
+            get 'disolve'() { return uniforms.disolve.value; },
+            set 'disolve'( v ) { uniforms.disolve.value = v; uniformsIn.disolve.value = v; ground.material.opacity = ( 1 - v ) * 0.5; render(); },
+
+            get 'threshold'() { return uniforms.threshold.value; },
+            set 'threshold'( v ) { uniforms.threshold.value = v; uniformsIn.threshold.value = v; render(); }
+
+        };
+
+        gui = new lil.GUI(); // Use lil.GUI
+        gui.add( material, 'roughness', 0, 1, 0.01 ).onChange( render );
+        gui.add( material, 'metalness', 0, 1, 0.01 ).onChange( render );
+        gui.add( setting, 'disolve', 0, 1, 0.01 ).onChange( render );
+        gui.add( setting, 'threshold', 0, 1, 0.01 ).onChange( render );
+        gui.add( setting, 'Enabled' );
+        gui.add( setting, 'UseNoiseMap' );
+        gui.add( setting, 'SuslikMethod' );
+        gui.add( setting, 'DebugNoise' );
+
+    }
+
+    function onWindowResize() {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+      render();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const addObjectsBtn = document.getElementById('addObjectsBtn');
+      const addObjectsDropdown = document.getElementById('addObjectsDropdown');
+
+      init(); // Initialize Three.js scene
+      // No continuous animate loop needed as render is called on change and initial load
+
+      if (addObjectsBtn && addObjectsDropdown) {
+        addObjectsBtn.addEventListener('click', function(event) {
+          event.stopPropagation(); // Prevent click from bubbling up and closing immediately
+          addObjectsDropdown.classList.toggle('hidden');
+        });
+
+        // Close the dropdown if clicking outside
+        document.addEventListener('click', function(event) {
+          if (!addObjectsBtn.contains(event.target) && !addObjectsDropdown.contains(event.target)) {
+            addObjectsDropdown.classList.add('hidden');
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

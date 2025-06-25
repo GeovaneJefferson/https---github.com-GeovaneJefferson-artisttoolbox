@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Modeling Interface</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #1a1a2e; /* Dark background for the whole page */
+    }
+    /* Custom styling for range input track and thumb for a dark theme */
+    input[type="range"]::-webkit-slider-runnable-track {
+      background: #4a4a5c;
+      border-radius: 9999px;
+      height: 4px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #007bff; /* Blue color for thumb */
+      border-radius: 50%;
+      cursor: pointer;
+      margin-top: -4px; /* Align thumb vertically */
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.4);
+    }
+    input[type="range"]::-moz-range-track {
+      background: #4a4a5c;
+      border-radius: 9999px;
+      height: 4px;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: #007bff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.4);
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-8">
+
+  <!-- Main Application Container -->
+  <div class="bg-zinc-900 rounded-xl shadow-2xl overflow-hidden w-full max-w-7xl h-[85vh] flex flex-col border border-gray-700">
+
+    <!-- Top Menu Bar -->
+    <div class="flex items-center justify-between p-3 border-b border-gray-700">
+      <div class="flex items-center space-x-4 text-gray-400 text-sm">
+        <button class="flex items-center space-x-1 hover:text-white transition-colors duration-200">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+          <span>File</span>
+        </button>
+        <button class="hover:text-white transition-colors duration-200">Edit</button>
+        <button class="hover:text-white transition-colors duration-200">Create</button>
+        <button class="hover:text-white transition-colors duration-200">Select</button>
+        <button class="hover:text-white transition-colors duration-200">Tools</button>
+        <button class="hover:text-white transition-colors duration-200">Scene</button>
+        <button class="hover:text-white transition-colors duration-200">Mesh</button>
+        <button class="hover:text-white transition-colors duration-200">Render</button>
+        <button class="hover:text-white transition-colors duration-200">Plugins</button>
+        <button class="hover:text-white transition-colors duration-200">Window</button>
+        <button class="hover:text-white transition-colors duration-200">Help</button>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="text-gray-300 text-sm">Untitled Project</span>
+        <button class="bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-xs hover:bg-gray-600 transition-colors duration-200">Layout <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button>
+        <button class="text-gray-400 hover:text-white transition-colors duration-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A12.022 12.022 0 0112 15c4.095 0 7.845 1.547 10.742 4.102M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Area: Left Panel, Center Panels, Right Panel -->
+    <div class="flex flex-1 p-3 space-x-3">
+
+      <!-- Left Panel (Viewport) -->
+      <div class="flex-1 bg-zinc-800 rounded-lg flex flex-col relative overflow-hidden">
+        <!-- Viewport Controls -->
+        <div class="flex items-center justify-between p-2 text-gray-400 text-xs border-b border-gray-700">
+          <div class="flex space-x-2">
+            <button class="hover:text-white">Live Viewer</button>
+            <button class="hover:text-white">View</button>
+            <button class="hover:text-white">Cameras</button>
+            <button class="hover:text-white">Display</button>
+            <button class="hover:text-white">Options</button>
+          </div>
+          <button class="hover:text-white">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+          </button>
+        </div>
+        <!-- 3D Model Placeholder -->
+        <div class="flex-1 flex items-center justify-center">
+          <img src="https://placehold.co/400x400/333333/FFFFFF?text=3D+Model+Viewport" alt="3D Model" class="max-w-full h-auto opacity-75">
+        </div>
+        <!-- Timeline Controls -->
+        <div class="p-2 border-t border-gray-700 flex flex-col space-y-2">
+          <div class="w-full h-1 bg-gray-700 rounded-full relative">
+            <div class="absolute h-full bg-red-500 rounded-full" style="width: 20%;"></div>
+            <div class="absolute w-3 h-3 bg-red-500 rounded-full -mt-1 cursor-ew-resize" style="left: 20%;"></div>
+          </div>
+          <div class="flex items-center justify-between text-gray-400 text-xs">
+            <span class="mr-2">00:00:01</span>
+            <div class="flex items-center space-x-2">
+              <button class="p-1 rounded-full hover:bg-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.000000000000002 8.293L8.707 5l-3.5 3.5"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-4a4 4 0 014-4h.001"></path></svg></button>
+              <button class="p-1 rounded-full hover:bg-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.000000000000002 15.707L8.707 19l-3.5-3.5"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7v4a4 4 0 004 4h.001"></path></svg></button>
+              <button class="p-1 rounded-full hover:bg-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m0 0l-3-3m3 3l3-3m-6 3a9 9 0 119-9"></path></svg></button>
+              <button class="p-1 rounded-full hover:bg-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 9v6m0 0l3-3m-3 3l-3-3m6 3a9 9 0 10-9-9"></path></svg></button>
+              <button class="p-1 rounded-full hover:bg-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.05 4.05a7 7 0 119.9 9.9L12 20.477l-2.95-2.95a7 7 0 01-9.9-9.9zM12 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg></button>
+              <button class="p-1 rounded-full hover:bg-gray-700"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button>
+            </div>
+            <span class="ml-2">24 FPS</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Material Editor (Center Panel) -->
+      <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-800 rounded-xl shadow-lg p-4 w-96 z-10 border border-gray-700">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-gray-300 font-semibold">Brushed Metal Material</h3>
+          <button class="text-gray-500 hover:text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-gray-400 text-xs mb-1">Color</label>
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-white border border-gray-600"></div>
+              <div class="flex-1 h-8 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500"></div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-gray-400 text-xs mb-1">Opacity</label>
+            <input type="range" min="0" max="100" value="50" class="w-full">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-gray-400 text-xs mb-1">Gold amount</label>
+            <input type="range" min="0" max="100" value="70" class="w-full">
+            <span class="text-gray-500 text-xs mt-1 block">70%</span>
+          </div>
+          <div>
+            <label class="block text-gray-400 text-xs mb-1">Specular</label>
+            <input type="range" min="0" max="100" value="80" class="w-full">
+            <span class="text-gray-500 text-xs mt-1 block">80%</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-gray-400 text-xs mb-1">Type</label>
+            <select class="w-full bg-gray-700 text-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option>Glossy</option>
+              <option>Matte</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-gray-400 text-xs mb-1">Texture</label>
+            <div class="flex items-center space-x-2">
+              <input type="text" value="Texture..." class="flex-1 bg-gray-700 text-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <button class="bg-gray-700 p-1 rounded-md text-gray-400 hover:text-white">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L20 20M14 20v2m0 0h2m-2 0l-3-3"></path></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3 mb-4">
+          <div class="flex items-center justify-between">
+            <label class="text-gray-300 text-sm">Roughness</label>
+            <input type="text" value="0.23" class="w-20 bg-gray-700 text-gray-300 rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="text-gray-300 text-sm">Bump</label>
+            <div class="flex items-center space-x-2">
+              <input type="text" value="0.10" class="w-20 bg-gray-700 text-gray-300 rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-500 rounded border-gray-600 focus:ring-blue-500 bg-gray-700">
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="text-gray-300 text-sm">Normal</label>
+            <div class="flex items-center space-x-2">
+              <input type="text" value="0.03" class="w-20 bg-gray-700 text-gray-300 rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-500 rounded border-gray-600 focus:ring-blue-500 bg-gray-700">
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="text-gray-300 text-sm">Displacement</label>
+            <div class="flex items-center space-x-2">
+              <input type="text" value="0.03" class="w-20 bg-gray-700 text-gray-300 rounded-md px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-500 rounded border-gray-600 focus:ring-blue-500 bg-gray-700">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-4 border-t border-gray-700">
+          <button class="text-blue-500 text-sm hover:text-blue-400">Node Editor</button>
+          <button class="text-gray-500 text-sm hover:text-white">Help</button>
+        </div>
+      </div>
+
+      <!-- Right Panel (Outliner & Properties) -->
+      <div class="w-80 flex flex-col space-y-3">
+
+        <!-- Top Right Tabbed Panel -->
+        <div class="bg-zinc-800 rounded-lg p-3 border border-gray-700">
+          <div class="flex items-center justify-between border-b border-gray-700 pb-2 mb-2">
+            <div class="flex space-x-2 text-gray-400 text-sm">
+              <button class="text-white border-b-2 border-blue-500 pb-1">File</button>
+              <button class="hover:text-white">Edit</button>
+              <button class="hover:text-white">View</button>
+              <button class="hover:text-white">Objects</button>
+              <button class="hover:text-white">Tags</button>
+              <button class="hover:text-white">Bookmarks</button>
+            </div>
+            <button class="text-gray-400 hover:text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg></button>
+          </div>
+
+          <!-- Scene Hierarchy (simplified) -->
+          <ul class="space-y-1 text-sm text-gray-300">
+            <li class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 20v-3m0 0l.001 0.01V20M12 17a4 4 0 00-4 4h8a4 4 0 00-4-4zM5 12h2a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v2a2 2 0 002 2zm14 0h2a2 2 0 002-2V8a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM8 4V3a1 1 0 011-1h6a1 1 0 011 1v1"></path></svg>
+              <span>Light</span>
+            </li>
+            <li class="flex items-center space-x-2 text-blue-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.523 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.523 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
+              <span>Poly Model</span>
+            </li>
+            <li class="flex items-center space-x-2 ml-4">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+              <span>Array.</span>
+            </li>
+            <li class="flex items-center space-x-2 ml-4">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.523 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.523 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
+              <span>Cube</span>
+            </li>
+            <li class="flex items-center space-x-2 text-gray-500 mt-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              <span>Set Color</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Position/Size/Rotation Panel 1 -->
+        <div class="bg-zinc-800 rounded-lg p-3 border border-gray-700">
+          <h4 class="text-gray-300 font-semibold mb-2 text-sm">Position / Size / Rotation</h4>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-gray-400">
+            <div class="flex items-center justify-between">
+              <span>X</span>
+              <input type="text" value="240 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>X</span>
+              <input type="text" value="240 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Y</span>
+              <input type="text" value="0 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Y</span>
+              <input type="text" value="0 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Z</span>
+              <input type="text" value="240 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Z</span>
+              <input type="text" value="0 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+          </div>
+          <div class="flex items-center justify-end space-x-2 mt-3">
+            <button class="bg-gray-700 text-gray-300 px-3 py-1 rounded-md text-xs hover:bg-gray-600">Shapes</button>
+            <button class="bg-blue-600 text-white px-3 py-1 rounded-md text-xs hover:bg-blue-700">Apply</button>
+          </div>
+        </div>
+
+        <!-- Position/Size/Rotation Panel 2 -->
+        <div class="bg-zinc-800 rounded-lg p-3 border border-gray-700">
+          <h4 class="text-gray-300 font-semibold mb-2 text-sm">Position / Size / Rotation</h4>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-gray-400 text-xs">Color</label>
+            <div class="w-6 h-6 rounded-full bg-orange-400 border border-gray-600"></div>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-gray-400 text-xs">Object</label>
+            <select class="w-32 bg-gray-700 text-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+              <option>Object 1</option>
+              <option>Object 2</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-gray-400">
+            <div class="flex items-center justify-between">
+              <span>X</span>
+              <input type="text" value="240 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>X</span>
+              <input type="text" value="240 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Y</span>
+              <input type="text" value="0 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Y</span>
+              <input type="text" value="0 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Z</span>
+              <input type="text" value="240 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Z</span>
+              <input type="text" value="0 cm" class="w-20 bg-gray-700 rounded-md px-2 py-1 text-right focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Command Bar -->
+    <div class="bg-zinc-800 p-3 border-t border-gray-700 flex items-center justify-between">
+      <div class="flex items-center space-x-4 text-gray-400 text-sm">
+        <button class="flex items-center space-x-1 p-2 rounded-md bg-zinc-700 text-white">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>Create</span>
+        </button>
+        <button class="flex items-center space-x-1 p-2 rounded-md hover:bg-zinc-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+          <span>Edit</span>
+        </button>
+        <button class="flex items-center space-x-1 p-2 rounded-md hover:bg-zinc-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+          <span>Function</span>
+        </button>
+        <button class="flex items-center space-x-1 p-2 rounded-md hover:bg-zinc-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.523 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.523 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
+          <span>Options</span>
+        </button>
+      </div>
+
+      <div class="flex items-center space-x-4 text-gray-400 text-sm">
+        <button class="p-2 rounded-md bg-zinc-700 flex items-center space-x-1 text-white">
+          <div class="w-4 h-4 rounded-full bg-gradient-to-br from-gold-300 to-gold-500"></div>
+          <span>Gold</span>
+        </button>
+        <button class="p-2 rounded-md hover:bg-zinc-700 flex items-center space-x-1">
+          <div class="w-4 h-4 rounded-full bg-gradient-to-br from-gray-500 to-gray-700"></div>
+          <span>Metal</span>
+        </button>
+        <button class="p-2 rounded-md hover:bg-zinc-700 flex items-center space-x-1">
+          <div class="w-4 h-4 rounded-full bg-gradient-to-br from-green-500 to-green-700"></div>
+          <span>Normal</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // No specific JavaScript for interactivity beyond basic dropdowns
+    // The previous 3D editor had a dropdown, but this one looks more static
+    // or relies on more complex JS frameworks for panel dragging/resizing.
+  </script>
+</body>
+</html>
