@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Building Concept Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden; /* Prevent body scroll if content overflows */
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2b2b2b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a4a4a;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a5a5a;
+        }
+        #threejs-container {
+            position: relative; /* Needed for positioning future UI elements on top of canvas */
+        }
+        #threejs-container canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Top Navigation Bar -->
+    <header class="flex items-center justify-between p-4 bg-[#2b2b2b] border-b border-[#3a3a3a] shadow-lg">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 text-sm font-medium text-[#f0f0f0]">
+                <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">A</div>
+                <div>
+                    <p>Andrew Kramor</p>
+                    <p class="text-xs text-gray-400">Design Agency</p>
+                </div>
+            </div>
+            <div class="flex items-center text-sm text-gray-400 space-x-2 ml-6">
+                <span>Camera Orthographic</span>
+                <span class="mx-1">•</span>
+                <span>Modeling</span>
+                <span class="mx-1">•</span>
+                <span>Object</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button class="p-2 rounded-md hover:bg-[#3a3a3a] text-gray-400 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+            <div class="relative">
+                <select class="bg-[#3a3a3a] rounded-md px-3 py-1 text-sm text-white appearance-none pr-8 cursor-pointer">
+                    <option>DG</option>
+                    <option>Option 2</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.757 7.586 5.343 9l4.95 4.95z"/></svg>
+                </div>
+            </div>
+            <button class="p-2 rounded-md hover:bg-[#3a3a3a] text-gray-400 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            </button>
+            <button class="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center text-white hover:bg-blue-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.156l-3.324-2.146A1 1 0 0010 9.774v4.452a1 1 0 001.428.892l3.324-2.146a1 1 0 000-1.784z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex flex-grow bg-[#1e1e1e] p-4 space-x-4">
+
+        <!-- Left Sidebar (Page and Layers) -->
+        <aside class="w-64 bg-[#2b2b2b] rounded-lg shadow-inner flex flex-col p-4 space-y-6 overflow-hidden">
+            <!-- Page Section -->
+            <div>
+                <h3 class="text-sm text-gray-400 uppercase font-semibold mb-2">Page</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center justify-between p-2 rounded-md bg-[#3a3a3a] text-white">
+                        <span>Layout</span>
+                        <span class="text-gray-400">⌘ + 1</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md hover:bg-[#3a3a3a] text-gray-300">
+                        <span>Modeling</span>
+                        <span class="text-gray-400">⌘ + 2</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md hover:bg-[#3a3a3a] text-gray-300">
+                        <span>UV Editing</span>
+                        <span class="text-gray-400">⌘ + 3</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md hover:bg-[#3a3a3a] text-gray-300">
+                        <span>Textures</span>
+                        <span class="text-gray-400">⌘ + 4</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-md hover:bg-[#3a3a3a] text-gray-300">
+                        <span>Nodes</span>
+                        <span class="text-gray-400">⌘ + 5</span>
+                    </div>
+                </div>
+                <button class="w-full mt-4 py-2 bg-[#3a3a3a] hover:bg-[#4a4a4a] text-white rounded-md text-sm">
+                    + Add New Page
+                </button>
+            </div>
+
+            <!-- Layers Section -->
+            <div class="flex-grow flex flex-col overflow-hidden">
+                <h3 class="text-sm text-gray-400 uppercase font-semibold mb-2">Layers</h3>
+                <div class="relative mb-3">
+                    <input type="text" placeholder="Search" class="w-full bg-[#3a3a3a] rounded-md py-1.5 px-3 text-sm text-white placeholder-gray-500 pr-8">
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                </div>
+                <div class="flex-grow overflow-y-auto custom-scrollbar">
+                    <ul class="text-sm space-y-1" id="scene-objects-list">
+                        <!-- Scene objects will be dynamically listed here -->
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Central 3D Viewport -->
+        <div class="flex-grow bg-[#2b2b2b] rounded-lg shadow-inner relative flex items-center justify-center overflow-hidden">
+            <div id="threejs-container" class="w-full h-full">
+                <!-- Three.js will render its canvas here -->
+            </div>
+
+            <!-- Drawing Mode Controls -->
+            <div class="absolute top-4 left-4 flex space-x-2 bg-[#3a3a3a] p-2 rounded-lg shadow-lg">
+                <button id="drawWallBtn" class="p-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <span>Draw Wall</span>
+                </button>
+                <button id="orbitModeBtn" class="p-2 rounded-md hover:bg-[#4a4a4a] text-gray-400 hover:text-white flex items-center space-x-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    <span>Orbit Mode</span>
+                </button>
+            </div>
+
+            <!-- Wall Parameters Input -->
+            <div class="absolute top-4 right-4 bg-[#3a3a3a] p-3 rounded-lg shadow-lg text-sm space-y-2">
+                <div class="flex items-center justify-between">
+                    <label for="wallHeight" class="mr-2">Height:</label>
+                    <input type="number" id="wallHeight" value="2.5" step="0.1" class="w-20 bg-[#2b2b2b] rounded-md py-1 px-2 text-white">
+                    <select id="heightUnit" class="ml-1 bg-[#2b2b2b] rounded-md py-1 px-2 text-white">
+                        <option value="m">m</option>
+                        <option value="mm">mm</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between">
+                    <label for="wallThickness" class="mr-2">Thickness:</label>
+                    <input type="number" id="wallThickness" value="0.2" step="0.01" class="w-20 bg-[#2b2b2b] rounded-md py-1 px-2 text-white">
+                    <select id="thicknessUnit" class="ml-1 bg-[#2b2b2b] rounded-md py-1 px-2 text-white">
+                        <option value="m">m</option>
+                        <option value="mm">mm</option>
+                    </select>
+                </div>
+                <button id="clearWallsBtn" class="w-full mt-2 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm">
+                    Clear All Walls
+                </button>
+            </div>
+
+
+            <!-- Bottom controls for the 3D viewport -->
+            <div class="bottom-controls absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 bg-[#3a3a3a] p-2 rounded-lg shadow-lg">
+                <button class="p-2 rounded-md hover:bg-[#4a4a4a] text-gray-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </button>
+                <div class="h-full w-px bg-[#4a4a4a]"></div>
+                <button class="p-2 rounded-md bg-blue-600 text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v4a1 1 0 001 1h6a1 1 0 001-1V7m0 10v3m0 0l-3-3m3 3l3-3m-9 0V9m0 0l-3 3m3-3l3 3m-6 3h6"></path></svg>
+                </button>
+                <button class="p-2 rounded-md hover:bg-[#4a4a4a] text-gray-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 012-2m14 0V9a2 2 0 00-2-2H7a2 2 0 00-2 2v2"></path></svg>
+                </button>
+                <button class="p-2 rounded-md hover:bg-[#4a4a4a] text-gray-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343h.001M15 7.343h.001"></path></svg>
+                </button>
+                <button class="p-2 rounded-md hover:bg-[#4a4a4a] text-gray-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h4c0 0 0 0 0 0l1-1 1-1h4.586a1 1 0 00.707-.293l2.414-2.414a1 1 0 00-.707-1.707l-2.414-2.414a1 1 0 00-1.707.707l-2.414-2.414a1 1 0 00-.707-1.707l-2.414-2.414A1 1 0 005.414 4H10l1-1 1-1h4c0 0 0 0 0 0l1 1 1 1h4.586a1 1 0 00.707-.293l2.414-2.414a1 1 0 00-.707-1.707l-2.414-2.414a1 1 0 00-1.707.707l-2.414-2.414A1 1 0 0019 4H14"></path></svg>
+                </button>
+                <button class="p-2 rounded-md hover:bg-[#4a4a4a] text-gray-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464l-4.242 4.242m0 0L6.964 16.036M11.293 11.293l-4.242-4.242m0 0L16.036 6.964M16.036 6.964l-4.242 4.242m0 0l-4.242 4.242M11.293 11.293l4.242-4.242m0 0L6.964 16.036"></path></svg>
+                </button>
+            </div>
+
+            <!-- "Add" Dropdown Menu (positioned absolutely for demonstration) -->
+            <div class="absolute bottom-16 left-1/2 -translate-x-1/2 bg-[#3a3a3a] rounded-md shadow-lg py-2 z-10 w-48 hidden" id="add-menu">
+                <button class="flex items-center px-4 py-2 text-sm text-white hover:bg-[#4a4a4a] w-full text-left">
+                    <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v4a1 1 0 001 1h6a1 1 0 001-1V7m0 10v3m0 0l-3-3m3 3l3-3m-9 0V9m0 0l-3 3m3-3l3 3m-6 3h6"></path></svg>
+                    Move
+                </button>
+                <button class="flex items-center px-4 py-2 text-sm text-white hover:bg-[#4a4a4a] w-full text-left">
+                    <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343h.001M15 7.343h.001"></path></svg>
+                    Material
+                </button>
+                <button class="flex items-center px-4 py-2 text-sm text-white hover:bg-[#4a4a4a] w-full text-left">
+                    <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 012-2m14 0V9a2 2 0 00-2-2H7a2 2 0 00-2 2v2"></path></svg>
+                    Mesh
+                </button>
+                <div class="border-t border-[#4a4a4a] my-2"></div>
+                <button class="flex items-center px-4 py-2 text-sm text-white hover:bg-[#4a4a4a] w-full text-left">
+                    <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h10M7 16h10"></path></svg>
+                    Grease Pencil
+                </button>
+                <button class="flex items-center px-4 py-2 text-sm text-white hover:bg-[#4a4a4a] w-full text-left">
+                    <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Text
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Sidebar (Frame, Material, Camera, etc.) -->
+        <aside class="w-64 bg-[#2b2b2b] rounded-lg shadow-inner flex flex-col p-4 space-y-6 overflow-y-auto custom-scrollbar">
+            <!-- Frame Section -->
+            <div>
+                <h3 class="text-sm text-gray-400 uppercase font-semibold mb-2">Frame</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span>Size</span>
+                        <div class="relative">
+                            <select class="bg-[#3a3a3a] rounded-md px-3 py-1 text-sm text-white appearance-none pr-8 cursor-pointer">
+                                <option>Responsive</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.757 7.586 5.343 9l4.95 4.95z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Auto Zoom</span>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 rounded-md text-xs font-semibold bg-blue-600 text-white">Yes</button>
+                            <button class="px-3 py-1 rounded-md text-xs font-semibold bg-[#3a3a3a] text-gray-400">No</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Screen UI</span>
+                        <div class="relative">
+                            <select class="bg-[#3a3a3a] rounded-md px-3 py-1 text-sm text-white appearance-none pr-8 cursor-pointer">
+                                <option>None</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.757 7.586 5.343 9l4.95 4.95z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Material Section -->
+            <div>
+                <h3 class="text-sm text-gray-400 uppercase font-semibold mb-2">Material</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span>Color</span>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 rounded-sm bg-blue-500 border border-[#4a4a4a]"></div>
+                            <input type="text" value="100%" class="w-16 bg-[#3a3a3a] rounded-md py-1 px-2 text-white text-right">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>Specular</span>
+                        <div class="relative">
+                            <select class="bg-[#3a3a3a] rounded-md px-3 py-1 text-sm text-white appearance-none pr-8 cursor-pointer">
+                                <option>None</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.757 7.586 5.343 9l4.95 4.95z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Camera Section -->
+            <div>
+                <h3 class="text-sm text-gray-400 uppercase font-semibold mb-2">Camera</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex items-center justify-center h-24 bg-[#3a3a3a] rounded-md text-gray-500">
+                        <!-- Placeholder for camera preview -->
+                        Camera Preview
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span>View</span>
+                        <div class="relative">
+                            <select class="bg-[#3a3a3a] rounded-md px-3 py-1 text-sm text-white appearance-none pr-8 cursor-pointer">
+                                <option>Orthographic</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 6.757 7.586 5.343 9l4.95 4.95z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="flex items-center justify-between w-full p-2 rounded-md hover:bg-[#3a3a3a] text-gray-300">
+                        <span>Light</span>
+                        <span>&gt;</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simulation Section -->
+            <div>
+                <h3 class="text-sm text-gray-400 uppercase font-semibold mb-2">Simulation</h3>
+                <button class="flex items-center justify-between w-full p-2 rounded-md hover:bg-[#3a3a3a] text-gray-300">
+                    <span>Effects</span>
+                    <span>&gt;</span>
+                </button>
+            </div>
+
+            <!-- Ambient Occlusion Section -->
+            <div>
+                <h3 class="text-sm text-gray-400 uppercase font-semibold mb-2">Ambient Occlusion</h3>
+                <button class="flex items-center justify-between w-full p-2 rounded-md hover:bg-[#3a3a3a] text-gray-300">
+                    <span>Ambient Occlusion</span>
+                    <span>&gt;</span>
+                </button>
+            </div>
+
+            <!-- Render Button -->
+            <div class="mt-auto pt-4">
+                <button class="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-md flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <span>Render</span>
+                </button>
+            </div>
+        </aside>
+
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        // JavaScript for interactivity
+        document.addEventListener('DOMContentLoaded', () => {
+            const addMenuButton = document.querySelector('.bottom-controls button:nth-child(3)');
+            const addMenu = document.getElementById('add-menu');
+            const drawWallBtn = document.getElementById('drawWallBtn');
+            const orbitModeBtn = document.getElementById('orbitModeBtn');
+            const clearWallsBtn = document.getElementById('clearWallsBtn');
+            const wallHeightInput = document.getElementById('wallHeight');
+            const wallThicknessInput = document.getElementById('wallThickness');
+            const heightUnitSelect = document.getElementById('heightUnit');
+            const thicknessUnitSelect = document.getElementById('thicknessUnit');
+            const sceneObjectsList = document.getElementById('scene-objects-list');
+
+
+            if (addMenuButton) {
+                addMenuButton.addEventListener('click', () => {
+                    if (addMenu) {
+                        addMenu.classList.toggle('hidden');
+                    }
+                });
+            }
+
+            document.addEventListener('click', (event) => {
+                try {
+                    // Ensure both addMenu and addMenuButton exist before checking contains
+                    if (addMenu && addMenuButton && !addMenu.contains(event.target) && !addMenuButton.contains(event.target)) {
+                        addMenu.classList.add('hidden');
+                    }
+                } catch (e) {
+                    console.error("Error in click listener for dropdown:", e);
+                    // Log the state of elements for debugging
+                    console.error("addMenu:", addMenu, "addMenuButton:", addMenuButton, "event.target:", event.target);
+                }
+            });
+
+            // --- Three.js Setup ---
+            const threejsContainer = document.getElementById('threejs-container');
+            let scene, camera, renderer, controls, ground;
+            let drawingMode = false;
+            let firstPoint = null;
+            let tempLine = null; // For drawing a preview line
+            let walls = []; // Array to store wall meshes
+
+            // Unit conversion factor (1 Three.js unit = 1 meter)
+            const SCALE_FACTOR_MM = 0.001; // 1 mm = 0.001 m = 0.001 Three.js units
+
+            function convertToMeters(value, unit) {
+                if (unit === 'mm') {
+                    return value * SCALE_FACTOR_MM;
+                }
+                return value; // Already in meters
+            }
+
+            function initThreeJS() {
+                // Scene
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x282828); // Dark background
+
+                // Camera
+                const aspect = threejsContainer.clientWidth / threejsContainer.clientHeight;
+                camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+                camera.position.set(5, 5, 5); // Default camera position
+                camera.lookAt(0, 0, 0);
+
+                // Renderer
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(threejsContainer.clientWidth, threejsContainer.clientHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                while (threejsContainer.firstChild) {
+                    threejsContainer.removeChild(threejsContainer.firstChild);
+                }
+                threejsContainer.appendChild(renderer.domElement);
+
+                // Ground Grid Helper
+                const gridColor1 = 0x444444; // Darker grid lines
+                const gridColor2 = 0x222222; // Even darker for subdivisions
+                const planeSize = 50; // Larger plane
+                const majorDivisions = 10; // 10m x 10m grid
+                const minorDivisions = 10; // 1m x 1m subdivisions
+
+                // Custom grid helper for a finer grid pattern
+                // We'll draw two grid helpers for major and minor lines
+                const majorGrid = new THREE.GridHelper(planeSize, majorDivisions, gridColor1, gridColor1);
+                majorGrid.material.opacity = 0.5;
+                majorGrid.material.transparent = true;
+                majorGrid.position.y = 0.01; // Slightly above the plane to avoid z-fighting
+                scene.add(majorGrid);
+
+                const minorGrid = new THREE.GridHelper(planeSize, majorDivisions * minorDivisions, gridColor2, gridColor2);
+                minorGrid.material.opacity = 0.2;
+                minorGrid.material.transparent = true;
+                minorGrid.position.y = 0.005; // Slightly above major grid
+                scene.add(minorGrid);
+
+
+                // Ground Plane (for raycasting and visual consistency)
+                const groundGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
+                const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x303030, side: THREE.DoubleSide, metalness: 0.1, roughness: 0.9 });
+                ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                scene.add(ground);
+
+                // Lights
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 20, 10);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048; // default is 512
+                directionalLight.shadow.mapSize.height = 2048; // default is 512
+                directionalLight.shadow.camera.near = 0.5; // default
+                directionalLight.shadow.camera.far = 500; // default
+                directionalLight.shadow.camera.left = -planeSize / 2;
+                directionalLight.shadow.camera.right = planeSize / 2;
+                directionalLight.shadow.camera.top = planeSize / 2;
+                directionalLight.shadow.camera.bottom = -planeSize / 2;
+                scene.add(directionalLight);
+
+                // Controls
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.screenSpacePanning = true; // Allow panning in screen space
+                controls.minDistance = 1;
+                controls.maxDistance = 100;
+                controls.target.set(0, 0, 0);
+                controls.update();
+
+                // Raycaster for mouse interaction
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();
+
+                // Function to get intersection point on the ground plane
+                function getGroundIntersection(event) {
+                    mouse.x = (event.clientX / threejsContainer.clientWidth) * 2 - 1;
+                    mouse.y = -(event.clientY / threejsContainer.clientHeight) * 2 + 1;
+                    raycaster.setFromCamera(mouse, camera);
+                    const intersects = raycaster.intersectObject(ground);
+                    if (intersects.length > 0) {
+                        // Snap to grid
+                        const snapSize = convertToMeters(100, 'mm'); // 100mm snap = 0.1m
+                        const snappedPoint = new THREE.Vector3(
+                            Math.round(intersects[0].point.x / snapSize) * snapSize,
+                            intersects[0].point.y,
+                            Math.round(intersects[0].point.z / snapSize) * snapSize
+                        );
+                        return snappedPoint;
+                    }
+                    return null;
+                }
+
+                // Drawing logic
+                threejsContainer.addEventListener('mousedown', (event) => {
+                    if (!drawingMode) return;
+                    const intersection = getGroundIntersection(event);
+                    if (intersection) {
+                        if (!firstPoint) {
+                            firstPoint = intersection;
+                            // Add a visual indicator for the first point
+                            const sphereGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+                            const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+                            tempLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffffff }));
+                            scene.add(tempLine);
+                        } else {
+                            // Create wall
+                            createWall(firstPoint, intersection);
+                            firstPoint = intersection; // Start new wall from end of previous
+                        }
+                    }
+                });
+
+                threejsContainer.addEventListener('mousemove', (event) => {
+                    if (!drawingMode || !firstPoint) {
+                        if (tempLine) { // Hide temp line if not drawing
+                            tempLine.geometry.dispose();
+                            scene.remove(tempLine);
+                            tempLine = null;
+                        }
+                        return;
+                    }
+
+                    const intersection = getGroundIntersection(event);
+                    if (intersection && tempLine) {
+                        const points = [firstPoint, intersection];
+                        tempLine.geometry.setFromPoints(points);
+                    }
+                });
+
+                function createWall(startPoint, endPoint) {
+                    const wallHeight = convertToMeters(parseFloat(wallHeightInput.value), heightUnitSelect.value);
+                    const wallThickness = convertToMeters(parseFloat(wallThicknessInput.value), thicknessUnitSelect.value);
+
+                    const distance = startPoint.distanceTo(endPoint);
+                    if (distance < 0.01) return; // Prevent tiny walls
+
+                    // Calculate the center and rotation for the wall
+                    const center = new THREE.Vector3().addVectors(startPoint, endPoint).multiplyScalar(0.5);
+                    const direction = new THREE.Vector3().subVectors(endPoint, startPoint).normalize();
+
+                    const wallGeometry = new THREE.BoxGeometry(distance, wallHeight, wallThickness);
+                    const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.1, roughness: 0.7 });
+                    const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+
+                    wallMesh.position.copy(center);
+                    wallMesh.position.y = wallHeight / 2; // Position correctly above the ground
+
+                    // Align the wall with the line segment
+                    const angle = Math.atan2(direction.x, direction.z); // Angle around Y axis
+                    wallMesh.rotation.y = angle;
+
+                    scene.add(wallMesh);
+                    walls.push(wallMesh);
+                    updateSceneObjectsList(); // Update the list in the sidebar
+                }
+
+                // Update scene objects list in the left sidebar
+                function updateSceneObjectsList() {
+                    sceneObjectsList.innerHTML = ''; // Clear existing
+                    scene.children.forEach((obj, index) => {
+                        if (obj.isMesh && obj !== ground && obj.parent === scene) { // Only show direct children meshes, excluding ground
+                            const listItem = document.createElement('li');
+                            listItem.className = 'flex items-center space-x-2 p-1 rounded-md hover:bg-[#3a3a3a] cursor-pointer';
+                            listItem.innerHTML = `
+                                <span class="text-gray-500">&#9656;</span>
+                                <span>${obj.name || `Wall ${index}`}</span>
+                            `;
+                            sceneObjectsList.appendChild(listItem);
+                        }
+                    });
+                }
+
+                // Initial update of the scene objects list (empty initially)
+                updateSceneObjectsList();
+
+                // Clear Walls Button
+                clearWallsBtn.addEventListener('click', () => {
+                    walls.forEach(wall => {
+                        scene.remove(wall);
+                        wall.geometry.dispose();
+                        wall.material.dispose();
+                    });
+                    walls = [];
+                    firstPoint = null; // Reset drawing
+                    if (tempLine) {
+                        scene.remove(tempLine);
+                        tempLine.geometry.dispose();
+                        tempLine = null;
+                    }
+                    updateSceneObjectsList();
+                });
+
+
+                // Toggle Drawing/Orbit Mode
+                drawWallBtn.addEventListener('click', () => {
+                    drawingMode = true;
+                    controls.enabled = false; // Disable orbit controls
+                    drawWallBtn.classList.add('bg-blue-600');
+                    drawWallBtn.classList.remove('hover:bg-[#4a4a4a]');
+                    drawWallBtn.classList.add('text-white');
+                    orbitModeBtn.classList.remove('bg-blue-600');
+                    orbitModeBtn.classList.add('hover:bg-[#4a4a4a]');
+                    orbitModeBtn.classList.remove('text-white');
+                    orbitModeBtn.classList.add('text-gray-400');
+
+                    // Reset any active drawing state
+                    firstPoint = null;
+                    if (tempLine) {
+                        scene.remove(tempLine);
+                        tempLine.geometry.dispose();
+                        tempLine = null;
+                    }
+                });
+
+                orbitModeBtn.addEventListener('click', () => {
+                    drawingMode = false;
+                    controls.enabled = true; // Enable orbit controls
+                    orbitModeBtn.classList.add('bg-blue-600');
+                    orbitModeBtn.classList.remove('hover:bg-[#4a4a4a]');
+                    orbitModeBtn.classList.add('text-white');
+                    drawWallBtn.classList.remove('bg-blue-600');
+                    drawWallBtn.classList.add('hover:bg-[#4a4a4a]');
+                    drawWallBtn.classList.remove('text-white');
+                    drawWallBtn.classList.add('text-gray-400');
+
+                    // Clean up drawing visuals
+                    firstPoint = null;
+                    if (tempLine) {
+                        scene.remove(tempLine);
+                        tempLine.geometry.dispose();
+                        tempLine = null;
+                    }
+                });
+
+                // Set initial mode to Orbit
+                orbitModeBtn.click(); // Programmatically click to set initial state
+
+                animate();
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update(); // Only update controls if enabled
+                renderer.render(scene, camera);
+            }
+
+            // Handle window resizing
+            function onWindowResize() {
+                if (!threejsContainer || !camera || !renderer) return;
+
+                const width = threejsContainer.clientWidth;
+                const height = threejsContainer.clientHeight;
+
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+                renderer.setPixelRatio(window.devicePixelRatio);
+            }
+
+            window.onload = function() {
+                initThreeJS();
+                window.addEventListener('resize', onWindowResize);
+            };
+        });
+    </script>
+</body>
+</html>

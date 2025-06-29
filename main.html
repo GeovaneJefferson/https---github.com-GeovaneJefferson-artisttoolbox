@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Artist Toolbox</title>
+    <title>Creative Toolbox</title>
+    <link rel="icon" type="image/png" href="Icons/artist_toolbox_icon.png">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/fflate@0.7.4/umd/index.min.js"></script>
@@ -15,27 +16,80 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
+        :root {
+            --header-height: 4rem; /* Define a CSS variable for header height */
+        }
         body {
             font-family: sans-serif;
             background: #f3f4f6; /* Light background for the body */
-            /* The container will now fill the body, so flex centering is not needed */
             min-height: 100vh;
-            padding: 0; /* Use all available space for the main container */
+            padding: 0;
             box-sizing: border-box;
             color: #1f2937; /* Dark text color for light theme */
+            display: flex;
+            flex-direction: column; /* Stack header and main content vertically */
+        }
+        .app-header {
+            width: 100%;
+            height: var(--header-height);
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0; /* Prevent header from shrinking */
+            position: relative; /* Needed for absolute positioning of dropdowns */
+        }
+        .app-header .app-title {
+            font-size: 1.5rem; /* Slightly smaller title for header */
+            font-weight: 700;
+            color: #111827;
+            margin: 0;
+            flex-grow: 1; /* Allow title to take available space */
+            text-align: center;
+        }
+        .header-button {
+            padding: 0.5rem 0.8rem;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            font-weight: 500;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .header-button:hover {
+            background-color: #e5e7eb;
+            color: #1f2937;
+        }
+
+        .main-content-wrapper {
+            flex-grow: 1; /* Main content takes remaining vertical space */
+            padding: 1rem; /* Add some padding around the main container */
+            overflow: hidden; /* Prevent body scrolling by keeping content within bounds */
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Use flexbox to enable centering */
+            justify-content: center; /* Center the .container horizontally */
         }
         .container {
-            /* Main application wrapper */
             width: 100%;
-            background-color: #ffffff; /* White background for main container */
-            border-radius: 0.8rem; /* Subtle rounding */
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); /* Light shadow for contrast */
-            padding: 1.5rem; /* Reduced padding */
+            /* max-width: 1800px; Set a max-width for very large screens */
+            height: 100%; /* Fill the height of the main-content-wrapper */
+            background-color: #ffffff;
+            border-radius: 0.8rem; /* Restore rounded corners for the card look */
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); /* Restore the shadow */
+            padding: 1.5rem;
             display: flex;
-            flex-direction: column; /* Mobile-first: stack panels vertically */
-            gap: 1rem; /* Reduced gap */
+            flex-direction: column;
+            gap: 1rem;
             transition: all 0.3s ease-in-out;
-            height: 100vh; /* Make container fill the entire viewport height */
         }
 
         /* Desktop layout: Switch to a row-based layout for wider screens */
@@ -61,6 +115,7 @@
                 display: flex; /* Corrected: Must be flex to contain tabs */
                 flex-direction: column;
                 height: 100%; /* Make main content area fill height of container */
+                min-width: 0; /* Prevent flex item from overflowing when content is too wide */
             }
             /* On desktop, make the PBR tab a row to create the 3-column layout */
             #texture-pbr-tab.active {
@@ -68,7 +123,8 @@
                 height: 100%; /* Make the tab fill the height of its parent (main-content-area) */
                 gap: 1rem; /* Add space between the middle and right columns */
             }
-        /* End of desktop layout styles */
+        }
+         /* End of desktop layout styles */
         h1 {
             font-size: 1.8rem; /* Smaller h1 */
             color: #111827;
@@ -237,11 +293,17 @@
             padding-top: 0.8rem; /* Reduced padding */
             border-top: 1px solid #e5e7eb; /* Lighter border */
             margin-top: 0.8rem;
+            transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
         }
         .controls-group:first-child {
             border-top: none;
             padding-top: 0;
             margin-top: 0;
+        }
+        .controls-group.highlighted-controls-group {
+            border: 2px solid #6d28d9; /* Purple border */
+            background-color: #f0ebf8; /* Lighter purple tint background */
+            box-shadow: 0 0 10px rgba(109, 40, 217, 0.3);
         }
         .controls-group select, .controls-group input[type="range"] {
             /* General styling for select dropdowns and range sliders */
@@ -318,52 +380,45 @@
             box-shadow: 0 1px 2px rgba(79, 70, 229, 0.4);
         }
 
-        /* Tab Navigation */
+        /* Tab Navigation (for inside dropdown) */
         .tab-buttons {
-            /* The container for all the main tab buttons (PBR, Colors, etc.) */
-            display: flex;
-            gap: 0.4rem; /* Very reduced gap */
-            margin-bottom: 0.8rem; /* Reduced margin */
-            padding-top: 0.6rem;
-            border-top: 1px solid #e5e7eb; /* Lighter border */
-            justify-content: center;
+            display: flex; /* Changed to flex for vertical list */
+            flex-direction: column; /* Stack buttons vertically */
+            gap: 0.4rem; /* Smaller gap for list items */
             width: 100%;
-            flex-wrap: wrap;
         }
         .tab-button {
-            /* Individual tab button styling */
-            padding: 0.4rem 0.8rem; /* Very compact padding */
+            padding: 0.6rem 0.8rem; /* More compact padding */
             border-radius: 0.4rem; /* Smaller radius */
             font-weight: 500;
-            font-size: 0.8rem; /* Smaller font */
+            font-size: 0.85rem; /* Slightly smaller font */
             cursor: pointer;
-            background-color: #f3f4f6; /* Light grey for inactive tabs */
-            color: #4b5563; /* Darker grey text */
-            transition: all 0.1s ease; /* Faster transition */
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
-            white-space: nowrap;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            transition: all 0.1s ease;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            text-align: left; /* Align text to left for list-like feel */
+            width: 100%; /* Ensure buttons fill dropdown width */
         }
         .tab-button:hover {
-            background-color: #e5e7eb; /* Slightly darker on hover */
-            color: #1f2937; /* Darker text */
-            transform: translateY(-0.5px);
+            background-color: #e5e7eb;
+            color: #1f2937;
+            transform: none; /* No lift on hover for dropdown items */
         }
         .tab-button.active {
-            /* Styling for the currently active tab button */
             background: linear-gradient(45deg, #4f46e5, #7c3aed);
             color: white;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -2px rgba(79, 70, 229, 0.2);
-            transform: translateY(-0.5px);
+            box-shadow: 0 2px 4px -1px rgba(79, 70, 229, 0.1), 0 1px 2px -1px rgba(79, 70, 229, 0.05); /* Lighter shadow for dropdown */
+            transform: none; /* No lift on hover for dropdown items */
         }
         .tab-content {
             display: none;
             width: 100%;
         }
         .tab-content.active {
-            /* The container for the content of the currently active tab */
             display: flex;
             flex-direction: column;
-            gap: 1rem; /* Reduced gap */
+            gap: 1rem;
         }
 
         /* Custom layout for tabs that need a full-height canvas area */
@@ -401,7 +456,7 @@
             flex-wrap: wrap;
             gap: 0.4rem; /* Reduced gap */
             justify-content: center;
-            padding: 0.8rem; /* Consistent with canvas-container */
+            padding: 0.8rem; /* Reduced padding */
             background-color: #f9fafb; /* Consistent with canvas-container */
             border-radius: 0.6rem;
             border: 1px solid #e5e7eb; /* Consistent with canvas-container */
@@ -409,17 +464,10 @@
         }
         .color-swatch {
             /* Individual color swatch styling */
-            width: 120px; /* Larger swatches */
-            height: 120px;
-            border-radius: 0.5rem;
+            width: 60px; /* Compact swatches */
+            height: 60px;
+            border-radius: 0.4rem; /* Slightly smaller radius */
             cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 0.75rem; /* Larger font for readability */
-            font-weight: 500;
-            color: #e0e0e0; /* Light text for contrast on dark colors */
-            text-shadow: 0 0 2px rgba(0,0,0,0.7); /* Stronger shadow for readability */
             border: 1px solid rgba(0,0,0,0.1); /* Slightly more visible dark border */
             transition: transform 0.1s ease, border-color 0.1s ease;
         }
@@ -427,27 +475,43 @@
             transform: scale(1.05); /* Slightly more pronounced hover */
             border-color: #4f46e5;
         }
-
-        /* Large Hover Preview Canvas Styling - REMOVED */
+        .palette-style-button {
+            padding: 0.3rem 0.6rem;
+            border-radius: 0.4rem;
+            font-weight: 500;
+            font-size: 0.75rem;
+            cursor: pointer;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            border: 1px solid #d1d5db;
+            transition: all 0.1s ease;
+        }
+        .palette
 
         /* New container for controls on the right side */
         .right-side-controls-container {
             /* This container holds all the sliders and controls within the PBR tab's right column */
             display: flex;
-            flex-direction: column;
+            /* flex-direction: column; */
             gap: 1rem; /* Standard gap for sections */
             width: 100%;
         }
-        @media (min-width: 768px) {
-            /* On medium screens and up, make the controls within the right panel responsive */
+        @media (min-width: 1024px) { /* Changed from 768px to 1024px for desktop layout */
+            /* On desktop screens, make the controls within the right panel responsive */
             .right-side-controls-container {
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: space-around;
+                flex: 0 0 420px; /* Fixed width for right panel, but allows content to wrap */
+                height: 100%;
+                overflow-y: auto;
+                background-color: #f9fafb;
+                border-radius: 0.6rem;
+                padding: 1rem;
+                flex-wrap: wrap; /* Allow content to wrap */
+                justify-content: space-around; /* Distribute items with space around them */
+                align-content: flex-start; /* Align content to the start of the cross axis */
             }
             .right-side-controls-container > .controls-group {
-                flex: 1 1 calc(30% - 0.6rem); /* Roughly 3 items per row, accounting for gap and tighter layout */
-                min-width: 280px;
+                flex: 1 1 220px; /* Allows groups to wrap and grow, with a smaller minimum width */
+                min-width: 220px; /* Reduced min-width to allow more shrinking */
                 padding-top: 1rem;
                 margin-top: 0;
                 border-top: none;
@@ -474,6 +538,7 @@
             font-size: 2.2rem; /* Even smaller main title on smaller screens */
             line-height: 1.1;
             font-weight: 800;
+            
         }
         .main-content-area .text-lg {
             font-size: 0.9rem; /* Smaller intro text on smaller screens */
@@ -518,8 +583,8 @@
         }
         .reset-camera-button {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 10px; /* Moved to top-left */
+            left: 10px; /* Moved to top-left */
             z-index: 10;
             background-color: rgba(255, 255, 255, 0.7);
             border: 1px solid #d1d5db;
@@ -541,356 +606,108 @@
             color: white;
             transform: rotate(90deg);
         }
+
+        /* Progress Bar Styles */
+        .income-progress-container {
+            width: 100%;
+            background-color: #e5e7eb; /* Light gray background for the empty part of the bar */
+            border-radius: 0.5rem;
+            height: 10px; /* Height of the progress bar */
+            overflow: hidden; /* Ensures the inner bar stays within rounded corners */
+            margin-top: 0.5rem;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        /* Styles for the progress bar when it's in the header */
+        .app-header .income-progress-container {
+            width: 150px; /* Fixed width for compactness in header */
+            height: 8px; /* Slightly smaller height */
+            margin: 0; /* Remove top margin */
+        }
+        .app-header .income-text {
+            font-size: 0.7rem; /* Even smaller font for header */
+            margin: 0;
+            white-space: nowrap; /* Prevent wrapping */
+        }
+        .app-header .percentage-text {
+            font-size: 0.7rem; /* Even smaller font for header */
+            margin: 0;
+            white-space: nowrap; /* Prevent wrapping */
+        }
+
+        .income-progress-bar {
+            height: 100%;
+            width: 0%; /* Initial width */
+            background: linear-gradient(to right, #6d28d9, #9c36b6); /* Purple gradient fill */
+            border-radius: 0.5rem;
+            transition: width 0.5s ease-in-out; /* Smooth transition for width changes */
+        }
+        .income-text, .percentage-text {
+            font-size: 0.75rem; /* Smaller font for progress text */
+            color: #4b5563; /* Consistent text color */
+            font-weight: 500;
+        }
+        .income-text {
+            margin-top: 0.5rem;
+        }
+        .percentage-text {
+            text-align: right; /* Align percentage to the right */
+            margin-top: 0.2rem;
+        }
+
+        /* Removed Modal Styles */
+        /* .modal, .modal.active, .modal-content, .modal-close-btn are no longer needed */
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Left Panel: Controls and 2D Maps -->
-        <div class="left-panel">
-            <h1 class="text-center mb-1 tracking-tight">
-                Artist Toolbox
-            </h1>
-            <p class="text-center text-sm leading-relaxed mb-3">
-                Your ultimate companion for 2D/3D art workflows.
-            </ </p>
-
-            <!-- Main Tab Buttons -->
-            <div class="tab-buttons">
-                <button class="tab-button active" data-tab-id="texture-pbr-tab">PBR</button>
-                <button class="tab-button" data-tab-id="color-extractor-tab">Extract Theme</button>
-                <button class="tab-button" data-tab-id="pixelate-tab">Pixelate</button>
-                <button class="tab-button" data-tab-id="animation-combiner-tab">Animate</button>
-                <button class="tab-button" data-tab-id="image-to-mesh-tab">Image to Mesh</button>
-            </div>
-
-            <!-- Controls for Texture Weaver (PBR) Tab -->
-            <div id="texture-pbr-controls" class="controls-group active-controls">
-                <label id="textureDropZone" class="drop-zone">
-                    <span class="text-sm text-gray-400 pointer-events-none">Drag & drop image or click to upload</span>
-                    <input type="file" id="textureInput" accept="image/*">
-                    <span id="fileNameDisplay" class="text-xs text-center break-words w-full mt-2 block">No image selected.</span>
-                    <div id="loadingSpinner" class="loader mx-auto"></div>
-                </label>
-
-                <div class="w-full mt-2">
-                    <button id="makeSeamlessButton" class="w-full py-1.5 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors">Make Texture Seamless</button>
+    <!-- Top Application Header -->
+    <div class="app-header">
+        <div class="relative">
+            <button id="appLauncherBtn" class="header-button">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+                <span>Tools</span>
+            </button>
+            <div id="tabSelectionDropdown" class="absolute top-full left-0 mt-2 w-max bg-white rounded-md shadow-lg p-2 z-10 hidden" style="min-width: 150px;">
+                <div class="tab-buttons">
+                    <button class="tab-button" data-tab-id="texture-pbr-tab">PBR</button>
+                    <button class="tab-button" data-tab-id="color-extractor-tab">Extract Theme</button>
+                    <button class="tab-button" data-tab-id="pixelate-tab">Pixelate</button>
+                    <button class="tab-button" data-tab-id="animation-combiner-tab">Animate</button>
+                    <button class="tab-button" data-tab-id="image-to-mesh-tab">Image to Mesh</button>
                 </div>
-
-                <div class="controls-group" id="seamlessControls">
-                    <label for="seamlessMethodSelect" class="text-xs">Method:</label>
-                    <select id="seamlessMethodSelect">
-                        <option value="mirror">Mirror (9-Slice)</option>
-                        <option value="blend" selected>Blend (Scattered Edges)</option>
-                    </select>
-
-                    <div id="seamlessBlendControls" style="display: block;">
-                        <div class="slider-group">
-                            <label for="seamlessRadiusSlider">Radius: <span id="seamlessRadiusValue">5</span></label>
-                            <input type="range" id="seamlessRadiusSlider" min="1" max="20" step="1" value="5">
-                        </div>
-                        <div class="slider-group mt-2">
-                            <label for="seamlessIntensitySlider">Intensity: <span id="seamlessIntensityValue">100</span></label>
-                            <input type="range" id="seamlessIntensitySlider" min="0" max="100" step="1" value="100">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex items-center gap-1 mt-2">
-                    <input type="checkbox" id="invertNormalY" class="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded cursor-pointer bg-gray-700">
-                    <label for="invertNormalY" class="cursor-pointer select-none text-xs">Invert Normal Map Y</label>
-                </div>
-                <div class="flex items-center gap-1 mt-1">
-                    <input type="checkbox" id="invertMetallic" class="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded cursor-pointer bg-gray-700">
-                    <label for="invertMetallic" class="cursor-pointer select-none text-xs">Invert Metallic Map</label>
-                </div>
-
-                <!-- 2D Maps Grid for PBR Tab -->
-                <div class="map-grid">
-                    <div class="canvas-container" data-map-type="Original Texture" data-source-canvas-id="originalTextureCanvas" data-explanation="The base color map (Albedo) that defines the diffuse color of the surface.">
-                        <h2 class="text-xs">Original</h2>
-                        <div class="flex items-center gap-1 mt-1">
-                            <input type="checkbox" id="exportOriginalTexture" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
-                            <label for="exportOriginalTexture" class="text-xs">Export</label>
-                        </div>
-                        <div class="canvas-wrapper">
-                            <canvas id="originalTextureCanvas" width="90" height="90"></canvas>
-                        </div>
-                    </div>
-                    <div class="canvas-container" data-map-type="Normal Map" data-source-canvas-id="normalMapCanvas" data-explanation="Simulates surface detail and bumps without adding more geometry. Encodes direction vectors in RGB.">
-                        <h2 class="text-xs">Normal</h2>
-                        <div class="flex items-center gap-1 mt-1">
-                            <input type="checkbox" id="exportNormalMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
-                            <label for="exportNormalMap" class="text-xs">Export</label>
-                        </div>
-                        <div class="canvas-wrapper">
-                            <canvas id="normalMapCanvas" width="90" height="90"></canvas>
-                        </div>
-                    </div>
-                    <div class="canvas-container" data-map-type="Roughness Map" data-source-canvas-id="roughnessMapCanvas" data-explanation="Controls how rough or smooth a surface is. Black (0) is smooth (shiny), White (1) is rough (matte).">
-                        <h2 class="text-xs">Roughness</h2>
-                        <div class="flex items-center gap-1 mt-1">
-                            <input type="checkbox" id="exportRoughnessMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
-                            <label for="exportRoughnessMap" class="text-xs">Export</label>
-                        </div>
-                        <div class="canvas-wrapper">
-                            <canvas id="roughnessMapCanvas" width="90" height="90"></canvas>
-                        </div>
-                    </div>
-                    <div class="canvas-container" data-map-type="Ambient Occlusion Map" data-source-canvas-id="aoMapCanvas" data-explanation="Simulates contact shadows in crevices and corners, adding depth. White means fully lit, Black means fully occluded.">
-                        <h2 class="text-xs">AO</h2>
-                        <div class="flex items-center gap-1 mt-1">
-                            <input type="checkbox" id="exportAOMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
-                            <label for="exportAOMap" class="text-xs">Export</label>
-                        </div>
-                        <div class="canvas-wrapper">
-                            <canvas id="aoMapCanvas" width="90" height="90"></canvas>
-                        </div>
-                    </div>
-                    <div class="canvas-container" data-map-type="Metallic Map" data-source-canvas-id="metallicMapCanvas" data-explanation="Defines which parts of the surface are metallic. White (1) is metallic, Black (0) is non-metallic (dielectric).">
-                        <h2 class="text-xs">Metallic</h2>
-                        <div class="flex items-center gap-1 mt-1">
-                            <input type="checkbox" id="exportMetallicMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
-                            <label for="exportMetallicMap" class="text-xs">Export</label>
-                        </div>
-                        <div class="canvas-wrapper">
-                            <canvas id="metallicMapCanvas" width="90" height="90"></canvas>
-                        </div>
-                    </div>
-                    <div class="canvas-container" data-map-type="Displacement Map" data-source-canvas-id="displacementMapCanvas" data-explanation="Actually displaces the geometry vertices to create real height and depth. White is high, Black is low.">
-                        <h2 class="text-xs">Displacement</h2>
-                        <div class="flex items-center gap-1 mt-1">
-                            <input type="checkbox" id="exportDisplacementMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
-                            <label for="exportDisplacementMap" class="text-xs">Export</label>
-                        </div>
-                        <div class="canvas-wrapper">
-                            <canvas id="displacementMapCanvas" width="90" height="90"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Controls for Color Extractor Tab -->
-            <div id="color-extractor-controls" class="controls-group" style="display:none;">
-                <label id="colorDropZone" class="drop-zone">
-                    <span class="text-sm text-gray-400 pointer-events-none">Drag & drop image or click to upload</span>
-                    <input type="file" id="colorImageInput" accept="image/*">
-                    <span id="colorFileNameDisplay" class="text-xs text-center break-words w-full mt-2 block">No image selected.</span>
-                    <div id="colorLoadingSpinner" class="loader mx-auto"></div>
-                </label>
-                <div class="slider-group mt-3">
-                    <label for="numColorsSlider">Colors: <span id="numColorsValue">5</span></label>
-                    <input type="range" id="numColorsSlider" min="1" max="10" step="1" value="5">
-                </div>
-            </div>
-
-            <!-- Controls for Pixelate Tab -->
-            <div id="pixelate-controls" class="controls-group" style="display:none;">
-                <h3 class="mb-2">Pixelate Mode</h3>
-                <p class="text-xs text-gray-500 mb-2">
-                    Upload image or use main.
-                </p>
-                <label id="pixelateDropZone" class="drop-zone">
-                    <span class="text-sm text-gray-400 pointer-events-none">Drag & drop image or click to upload</span>
-                    <input type="file" id="pixelateImageInput" accept="image/*">
-                    <span id="pixelateFileNameDisplay" class="text-xs text-center break-words w-full mt-2 block">No image selected.</span>
-                    <div id="pixelateLoadingSpinner" class="loader mx-auto"></div>
-                </label>
-                <div class="slider-group mt-3">
-                    <label for="pixelSizeSlider">Pixel Size: <span id="pixelSizeValue">8px</span></label>
-                    <input type="range" id="pixelSizeSlider" min="1" max="50" step="1" value="10">
-                </div>
-            </div>
-
-            <!-- Controls for Animation Combiner Tab -->
-            <div id="animation-combiner-controls" class="controls-group" style="display:none;">
-                <h3 class="mb-2">Animation Combiner</h3>
-                <p class="text-xs text-gray-500 mb-2">
-                    Upload a character and one or more animations.
-                </p>
-                <div class="flex flex-col items-center gap-4 w-full">
-                    <!-- Character Upload -->
-                    <div class="w-full">
-                        <label for="characterFbxInput" class="custom-file-upload w-full">
-                            Upload Character FBX
-                        </label>
-                        <input type="file" id="characterFbxInput" accept=".fbx">
-                        <span id="characterFileNameDisplay" class="text-xs text-center break-words w-full mt-1 block">No character file selected.</span>
-                    </div>
-
-                    <!-- Animations Upload -->
-                    <div class="w-full">
-                        <label for="animationFbxInput" class="custom-file-upload w-full">
-                            Upload Animation(s) FBX
-                        </label>
-                        <input type="file" id="animationFbxInput" accept=".fbx" multiple>
-                        <span id="animationFileNameDisplay" class="text-xs text-center break-words w-full mt-1 block">No animation files selected.</span>
-                    </div>
-                </div>
-                <div class="controls-group mt-3">
-                    <label for="animationSelect" class="text-xs font-medium">Select Animation:</label>
-                    <select id="animationSelect">
-                        <option value="">-- Load animations first --</option>
-                    </select>
-                </div>
-                <div class="slider-group">
-                    <label for="animationSpeedSlider">Speed: <span id="animationSpeedValue">1.00</span></label>
-                    <input type="range" id="animationSpeedSlider" min="0.1" max="2.0" step="0.01" value="1.0">
-                </div>
-                <div class="flex items-center gap-1 mt-2">
-                    <input type="checkbox" id="enableRootMotion" class="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded cursor-pointer bg-gray-700">
-                    <label for="enableRootMotion" class="cursor-pointer select-none text-xs">Enable Root Motion</label>
-                </div>
-                <button id="loadAndPlayAnimationsButton" class="custom-file-upload mt-2">Load & Play</button>
-            </div>
-
-            <!-- Controls for Image to Mesh Tab -->
-            <div id="image-to-mesh-controls" class="controls-group" style="display:none;">
-                <h3 class="mb-2">Image to Mesh</h3>
-                <p class="text-xs text-gray-500 mb-2">
-                    Upload an image to convert it into a 3D mesh. Lighter areas will be higher.
-                </p>
-                <label id="meshDropZone" class="drop-zone">
-                    <span class="text-sm text-gray-400 pointer-events-none">Drag & drop image or click to upload</span>
-                    <input type="file" id="meshImageInput" accept="image/*">
-                    <span id="meshFileNameDisplay" class="text-xs text-center break-words w-full mt-2 block">No image selected.</span>
-                    <div id="meshLoadingSpinner" class="loader mx-auto"></div>
-                </label>
-                <div class="slider-group mt-3">
-                    <label for="meshDetailSlider">Detail (Subdivisions): <span id="meshDetailValue">64</span></label>
-                    <input type="range" id="meshDetailSlider" min="16" max="512" step="16" value="64">
-                </div>
-                <div class="slider-group mt-2">
-                    <label for="meshHeightSlider">Height Scale: <span id="meshHeightValue">2</span></label>
-                    <input type="range" id="meshHeightSlider" min="0" max="200" step="1" value="2">
-                </div>
-                <div class="flex items-center gap-1 mt-2">
-                    <input type="checkbox" id="smoothMeshCheckbox" class="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded cursor-pointer bg-gray-700" checked>
-                    <label for="smoothMeshCheckbox" class="cursor-pointer select-none text-xs">Smooth Mesh</label>
-                </div>
-                <div class="slider-group mt-2" id="meshSmoothingControls" style="display: flex;">
-                    <label for="meshSmoothingIterationsSlider">Smoothing Iterations: <span id="meshSmoothingIterationsValue">2</span></label>
-                    <input type="range" id="meshSmoothingIterationsSlider" min="1" max="10" step="1" value="2">
-                </div>
-                <!-- NEW: Mesh Preview Mode Selector -->
-                <div class="controls-group mt-2">
-                    <label for="meshPreviewModeSelect" class="text-xs font-medium">Left Preview Mode:</label>
-                    <select id="meshPreviewModeSelect">
-                        <option value="depth">Depth Map (Black & White)</option>
-                        <option value="normal">Normal Map (RGB Colors)</option>
-                        <option value="wireframe" selected>Wireframe</option>
-                    </select>
-                </div>
-                <button id="exportGlbButton" class="custom-file-upload mt-2">Export as .GLB</button>
             </div>
         </div>
-
-        <!-- Center Panel: Main Content Area (Tabs for tools) -->
-        <div class="main-content-area">
-            <!-- Texture PBR Content -->
-            <!-- This tab is a flex container. On desktop, it becomes a row to create a 3-column layout. -->
-            <div id="texture-pbr-tab" class="tab-content active">
-                <!-- Middle Column: 3D Canvas Preview -->
-                <div class="canvas-wrapper flex justify-center items-center" style="flex: 1 1 0; min-width: 0; height: 100%; position: relative;">
-                    <button id="resetPbrCameraBtn" class="reset-camera-button" title="Reset Camera">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.18-3.185m-3.181 9.348a8.25 8.25 0 00-11.664 0l-3.18 3.185m3.181-9.348L2.985 19.644" /></svg>
-                    </button>
-                    <canvas id="threeJsCanvas" width="600" height="380"></canvas>
+        <h3 class="text-sm font-semibold text-gray-700 app-title">Creative Toolbox</h3>
+        <div class="flex items-center gap-2">
+            <!-- New: Donation Goal Progress Bar moved here -->
+            <div id="donationGoalSection" class="flex flex-col items-start px-2 py-1 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center gap-1 text-xs">
+                    <span class="font-semibold text-gray-700">Goal:</span>
+                    <span id="incomeText" class="income-text">$0 / $100</span>
+                    <span id="percentageText" class="percentage-text ml-auto">0%</span>
                 </div>
+                <div class="income-progress-container w-full">
+                    <div id="incomeProgressBar" class="income-progress-bar"></div>
+                </div>
+            </div>
+            <!-- End Donation Goal Progress Bar -->
 
-                <!-- Right Column: PBR Controls -->
-                <div class="right-side-controls-container" style="flex: 0 0 320px; height: 100%; overflow-y: auto; background-color: #f9fafb; border-radius: 0.6rem; padding: 1rem;">
-                    <div class="controls-group">
-                        <h3 class="mb-2">Material & Map Adjustments</h3>
-                        
-                        <div class="slider-group">
-                            <label for="normalStrengthSlider">
-                                <span>Normal Strength: <span id="normalStrengthValue">1.00</span></span>
-                                <button class="reset-slider-button" data-slider-id="normalStrengthSlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="normalStrengthSlider" min="0.0" max="2.0" step="0.01" value="1.0">
-                        </div>
+            <!-- New: Patreon Support Button -->
+            <a href="https://www.patreon.com/YOUR_PATREON_PROFILE" target="_blank" rel="noopener noreferrer" class="header-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                <span>Support</span>
+            </a>
 
-                        <div class="slider-group">
-                            <label for="roughnessIntensitySlider">
-                                <span>Roughness Intensity: <span id="roughnessIntensityValue">1.00</span></span>
-                                <button class="reset-slider-button" data-slider-id="roughnessIntensitySlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="roughnessIntensitySlider" min="0.0" max="2.0" step="0.01" value="1.0">
-                        </div>
-
-                        <div class="slider-group">
-                            <label for="aoContrastSlider">
-                                <span>AO Contrast: <span id="aoContrastValue">1.00</span></span>
-                                <button class="reset-slider-button" data-slider-id="aoContrastSlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="aoContrastSlider" min="0.0" max="2.0" step="0.01" value="1.0">
-                        </div>
-                        <div class="slider-group">
-                            <label for="aoIntensitySlider">
-                                <span>AO Intensity: <span id="aoIntensityValue">1.00</span></span>
-                                <button class="reset-slider-button" data-slider-id="aoIntensitySlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="aoIntensitySlider" min="0.0" max="1.0" step="0.01" value="1.0">
-                        </div>
-
-                        <div class="slider-group">
-                            <label for="metallicSharpnessSlider">
-                                <span>Metallic Sharpness: <span id="metallicSharpnessValue">0.15</span></span>
-                                <button class="reset-slider-button" data-slider-id="metallicSharpnessSlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="metallicSharpnessSlider" min="0.0" max="1.0" step="0.01" value="0.15">
-                        </div>
-
-                        <div class="slider-group">
-                            <label for="displacementDetailSlider">
-                                <span>Displacement Detail: <span id="displacementDetailValue">0.30</span></span>
-                                <button class="reset-slider-button" data-slider-id="displacementDetailSlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="displacementDetailSlider" min="0.0" max="2.0" step="0.01" value="0.30">
-                        </div>
-                        <div class="slider-group">
-                            <label for="displacementScaleSlider">
-                                <span>Displacement Scale: <span id="displacementScaleValue">0.04</span></span>
-                                <button class="reset-slider-button" data-slider-id="displacementScaleSlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="displacementScaleSlider" min="0.0" max="1.0" step="0.01" value="0.04">
-                        </div>
-                        <div class="slider-group">
-                            <label for="displacementBiasSlider">
-                                <span>Displacement Bias: <span id="displacementBiasValue">-0.02</span></span>
-                                <button class="reset-slider-button" data-slider-id="displacementBiasSlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="displacementBiasSlider" min="-0.5" max="0.5" step="0.01" value="-0.02">
-                        </div>
-                    </div>
-
-                    <div class="controls-group">
-                        <h3 class="mb-2">Lighting</h3>
-                        <div class="slider-group">
-                            <label for="sunAzimuthSlider">
-                                <span>Sun Azimuth: <span id="sunAzimuthValue">45</span>°</span>
-                                <button class="reset-slider-button" data-slider-id="sunAzimuthSlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="sunAzimuthSlider" min="0" max="360" step="1" value="45">
-                        </div>
-                        <div class="slider-group">
-                            <label for="sunElevationSlider">
-                                <span>Sun Elevation: <span id="sunElevationValue">45</span>°</span>
-                                <button class="reset-slider-button" data-slider-id="sunElevationSlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="sunElevationSlider" min="0" max="90" step="1" value="45">
-                        </div>
-                        <div class="slider-group">
-                            <label for="sunIntensitySlider">
-                                <span>Sun Intensity: <span id="sunIntensityValue">1.00</span></span>
-                                <button class="reset-slider-button" data-slider-id="sunIntensitySlider" title="Reset to default">↺</button>
-                            </label>
-                            <input type="range" id="sunIntensitySlider" min="0" max="5" step="0.01" value="1.0">
-                        </div>
-                    </div>
-
-                    <div class="controls-group">
-                        <h3 class="mb-2">Export Options</h3>
+            <div class="relative">
+                <button id="exportButtonHeader" class="header-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75v6.75m0 0l-3-3m3 3l3-3m-8.25 6h12.75" />
+                    </svg>
+                    <span>Export</span>
+                </button>
+                <div id="exportOptionsDropdown" class="absolute top-full right-0 mt-2 w-72 bg-white rounded-md shadow-lg p-4 z-10 hidden">
+                    <div class="controls-group" style="border-top: none; margin-top: 0; padding-top: 0;">
                         <label for="exportResolution" class="text-xs font-medium">
                             <span>Resolution:</span>
                         </label>
@@ -904,89 +721,507 @@
                             <option value="512">512x512</option>
                             <option value="1024">1024x1024</option>
                         </select>
-                        <button id="exportButton" class="custom-file-upload mt-2">Export Selected</button>
+                        <div class="flex flex-col gap-2 mt-4">
+                            <p class="text-sm font-medium text-gray-700">Select Maps to Export:</p>
+                            <div class="flex items-center gap-1">
+                                <input type="checkbox" id="exportOriginalTextureDropdown" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="exportOriginalTextureDropdown" class="cursor-pointer select-none text-sm">Color Map (Albedo)</label>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="checkbox" id="exportNormalMapDropdown" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="exportNormalMapDropdown" class="cursor-pointer select-none text-sm">Normal Map</label>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="checkbox" id="exportRoughnessMapDropdown" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="exportRoughnessMapDropdown" class="cursor-pointer select-none text-sm">Roughness Map</label>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="checkbox" id="exportAOMapDropdown" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="exportAOMapDropdown" class="cursor-pointer select-none text-sm">Ambient Occlusion (AO) Map</label>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="checkbox" id="exportMetallicMapDropdown" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="exportMetallicMapDropdown" class="cursor-pointer select-none text-sm">Metallic Map</label>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="checkbox" id="exportDisplacementMapDropdown" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="exportDisplacementMapDropdown" class="cursor-pointer select-none text-sm">Displacement Map</label>
+                            </div>
+                        </div>
+                        <button id="exportButtonDropdown" class="custom-file-upload mt-4">Export Selected Maps</button>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Color Extractor Tab Content -->
-            <div id="color-extractor-tab" class="tab-content">
-                <div class="canvas-wrapper w-full flex justify-center items-center">
-                    <canvas id="colorExtractorCanvas" width="600" height="380"></canvas>
-                </div>
-
-                <div class="canvas-container">
-                    <div id="extractedColorPalette" class="color-palette w-full min-h-[70px]">
-                        <!-- Color swatches will be inserted here -->
-                        <p class="text-center w-full text-gray-500 text-sm"></p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pixelate Tab Content -->
-            <div id="pixelate-tab" class="tab-content">
-                <h1 class="text-center mb-2 tracking-tight">
-                    Pixelate Image
-                </h1>
-                <p class="text-center text-sm leading-tight max-w-xl mx-auto mb-3">
-                    Transform your image into a pixelated artwork by adjusting the pixel size.
-                </p>
-                <div class="canvas-container">
-                    <h2 class="text-base">Pixelated Image Preview</h2>
-                    <div class="canvas-wrapper w-full flex justify-center items-center" style="height: 380px; max-height: 50vh;">
-                        <canvas id="pixelateCanvas" width="600" height="380"></canvas>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Animation Combiner Tab Content -->
-            <div id="animation-combiner-tab" class="tab-content">
-                <h1 class="text-center mb-2 tracking-tight">
-                    Animation Combiner
-                </h1>
-                <p class="text-center text-sm leading-tight max-w-xl mx-auto mb-3">
-                    (Conceptual Feature) Blend multiple FBX animations for character models.
+    <!-- Main Content Wrapper -->
+    <div class="main-content-wrapper">
+        <div class="container">
+            <!-- Left Panel: Controls and 2D Maps -->
+            <div class="left-panel">
+                <p class="text-center text-sm leading-relaxed mb-3">
+                    Your ultimate companion for 2D/3D art workflows.
                 </p>
 
-                <div class="canvas-container" style="flex-grow: 1; min-height: 0;">
-                    <h2 class="text-base">3D Animation Preview</h2>
-                    <div id="animationCanvasWrapper" class="canvas-wrapper w-full flex-grow justify-center items-center">
-                        <p id="animationPlaceholderText" class="text-center text-gray-500 text-sm p-4">Upload a character and animation files, then click "Load & Play".</p>
-                        <canvas id="animationCombinerThreeJsCanvas" style="display:none; width: 100%; height: 100%;"></canvas>
+                <!-- Controls for Texture Weaver (PBR) Tab -->
+                <div id="texture-pbr-controls" class="controls-group active-controls">
+                    <label id="textureDropZone" class="drop-zone">
+                        <span class="text-sm text-gray-400 pointer-events-none">Drag & drop image or click to upload</span>
+                        <input type="file" id="textureInput" accept="image/*">
+                        <span id="fileNameDisplay" class="text-xs text-center break-words w-full mt-2 block">No image selected.</span>
+                        <div id="loadingSpinner" class="loader mx-auto"></div>
+                    </label>
+
+                    <div class="w-full mt-2">
+                        <button id="makeSeamlessButton" class="w-full py-1.5 bg-indigo-700 text-white text-xs rounded hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors">Make Texture Seamless</button>
                     </div>
-                </div>
-            </div>
 
-            <!-- Image to Mesh Tab Content -->
-            <div id="image-to-mesh-tab" class="tab-content">
-                <div class="relative">
-                    <h1 class="text-center mb-2 tracking-tight">
-                        Image to 3D Mesh Converter
-                    </h1>
-                    <p class="text-center text-sm leading-tight max-w-xl mx-auto mb-3">
-                        Generate a 3D mesh from a 2D image's brightness values. Use the controls on the left to adjust the result.
-                    </p>
-                    <button id="resetMeshCameraBtn" class="reset-camera-button" title="Reset Camera" style="top: 0; right: 0;">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.18-3.185m-3.181 9.348a8.25 8.25 0 00-11.664 0l-3.18 3.185m3.181-9.348L2.985 19.644" /></svg>
-                    </button>
-                </div>
+                    <div class="controls-group" id="seamlessControls">
+                        <label for="seamlessMethodSelect" class="text-sm font-semibold text-gray-700">Method:</label>
+                        <select id="seamlessMethodSelect">
+                            <option value="mirror">Mirror (9-Slice)</option>
+                            <option value="blend" selected>Blend (Scattered Edges)</option>
+                        </select>
 
-                <div id="mesh-previews-container" class="flex flex-col lg:flex-row gap-4" style="flex-grow: 1; min-height: 0;">
-                    <!-- Left Preview: Depth/Geometry -->
-                    <div class="canvas-container flex-1" style="min-width: 0;">
-                        <h2 class="text-base">Depth Preview (Geometry)</h2>
-                        <div id="meshDepthCanvasWrapper" class="canvas-wrapper w-full flex-grow justify-center items-center">
-                            <p id="meshDepthPlaceholderText" class="text-center text-gray-500 text-sm p-4">Upload an image to generate a mesh.</p>
-                            <canvas id="imageToMeshDepthCanvas" style="display:none; width: 100%; height: 100%;"></canvas>
+                        <div id="seamlessBlendControls" style="display: block;">
+                            <div class="slider-group">
+                                <label for="seamlessRadiusSlider">Radius: <span id="seamlessRadiusValue">5</span></label>
+                                <input type="range" id="seamlessRadiusSlider" min="1" max="20" step="1" value="5">
+                            </div>
+                            <div class="slider-group mt-2">
+                                <label for="seamlessIntensitySlider">Intensity: <span id="seamlessIntensityValue">100</span></label>
+                                <input type="range" id="seamlessIntensitySlider" min="0" max="100" step="1" value="100">
+                            </div>
                         </div>
                     </div>
-                    <!-- Right Preview: Textured Mesh -->
-                    <div class="canvas-container flex-1" style="min-width: 0;">
-                        <h2 class="text-base">Textured Mesh Preview</h2>
-                        <div id="meshCanvasWrapper" class="canvas-wrapper w-full flex-grow justify-center items-center">
-                            <p id="meshPlaceholderText" class="text-center text-gray-500 text-sm p-4">Upload an image to generate a mesh.</p>
-                            <canvas id="imageToMeshThreeJsCanvas" style="display:none; width: 100%; height: 100%;"></canvas>
+                    
+                    <div class="flex items-center gap-1 mt-2">
+                        <input type="checkbox" id="invertNormalY" class="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded cursor-pointer bg-gray-700">
+                        <label for="invertNormalY" class="cursor-pointer select-none text-xs">Invert Normal Map Y</label>
+                    </div>
+                    <div class="flex items-center gap-1 mt-1">
+                        <input type="checkbox" id="invertMetallic" class="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded cursor-pointer bg-gray-700">
+                        <label for="invertMetallic" class="cursor-pointer select-none text-xs">Invert Metallic Map</label>
+                    </div>
+
+                    <!-- 2D Maps Grid for PBR Tab -->
+                    <div class="map-grid">
+                        <div class="canvas-container" data-map-type="Color Map" data-source-canvas-id="originalTextureCanvas" data-explanation="The base color map (Albedo) that defines the diffuse color of the surface.">
+                            <h2 class="text-sm font-semibold text-gray-700">Color</h2>
+                            <div class="flex items-center gap-1 mt-1">
+                                <input type="checkbox" id="exportOriginalTexture" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
+                                <label for="exportOriginalTexture" class="text-xs">Export</label>
+                            </div>
+                            <div class="canvas-wrapper">
+                                <canvas id="originalTextureCanvas" width="90" height="90"></canvas>
+                            </div>
+                        </div>
+                        <div class="canvas-container" data-map-type="Normal Map" data-source-canvas-id="normalMapCanvas" data-explanation="Simulates surface detail and bumps without adding more geometry. Encodes direction vectors in RGB.">
+                            <h2 class="text-sm font-semibold text-gray-700">Normal</h2>
+                            <div class="flex items-center gap-1 mt-1">
+                                <input type="checkbox" id="exportNormalMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
+                                <label for="exportNormalMap" class="text-xs">Export</label>
+                            </div>
+                            <div class="canvas-wrapper">
+                                <canvas id="normalMapCanvas" width="90" height="90"></canvas>
+                            </div>
+                        </div>
+                        <div class="canvas-container" data-map-type="Roughness Map" data-source-canvas-id="roughnessMapCanvas" data-explanation="Controls how rough or smooth a surface is. Black (0) is smooth (shiny), White (1) is rough (matte).">
+                            <h2 class="text-sm font-semibold text-gray-700">Roughness</h2>
+                            <div class="flex items-center gap-1 mt-1">
+                                <input type="checkbox" id="exportRoughnessMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
+                                <label for="exportRoughnessMap" class="text-xs">Export</label>
+                            </div>
+                            <div class="canvas-wrapper">
+                                <canvas id="roughnessMapCanvas" width="90" height="90"></canvas>
+                            </div>
+                        </div>
+                        <div class="canvas-container" data-map-type="Ambient Occlusion Map" data-source-canvas-id="aoMapCanvas" data-explanation="Simulates contact shadows in crevices and corners, adding depth. White means fully lit, Black means fully occluded.">
+                            <h2 class="text-sm font-semibold text-gray-700">AO</h2>
+                            <div class="flex items-center gap-1 mt-1">
+                                <input type="checkbox" id="exportAOMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
+                                <label for="exportAOMap" class="text-xs">Export</label>
+                            </div>
+                            <div class="canvas-wrapper">
+                                <canvas id="aoMapCanvas" width="90" height="90"></canvas>
+                            </div>
+                        </div>
+                        <div class="canvas-container" data-map-type="Metallic Map" data-source-canvas-id="metallicMapCanvas" data-explanation="Defines which parts of the surface are metallic. White (1) is metallic, Black (0) is non-metallic (dielectric).">
+                            <h2 class="text-sm font-semibold text-gray-700">Metallic</h2>
+                            <div class="flex items-center gap-1 mt-1">
+                                <input type="checkbox" id="exportMetallicMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
+                                <label for="exportMetallicMap" class="text-xs">Export</label>
+                            </div>
+                            <div class="canvas-wrapper">
+                                <canvas id="metallicMapCanvas" width="90" height="90"></canvas>
+                            </div>
+                        </div>
+                        <div class="canvas-container" data-map-type="Displacement Map" data-source-canvas-id="displacementMapCanvas" data-explanation="Actually displaces the geometry vertices to create real height and depth. White is high, Black is low.">
+                            <h2 class="text-sm font-semibold text-gray-700">Displacement</h2>
+                            <div class="flex items-center gap-1 mt-1">
+                                <input type="checkbox" id="exportDisplacementMap" class="h-3 w-3 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded bg-gray-700" checked>
+                                <label for="exportDisplacementMap" class="text-xs">Export</label>
+                            </div>
+                            <div class="canvas-wrapper">
+                                <canvas id="displacementMapCanvas" width="90" height="90"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls for Color Extractor Tab -->
+                <div id="color-extractor-controls" class="controls-group" style="display:none;">
+                    <label id="colorDropZone" class="drop-zone">
+                        <span class="text-sm text-gray-400 pointer-events-none">Drag & drop image or click to upload</span>
+                        <input type="file" id="colorImageInput" accept="image/*">
+                        <span id="colorFileNameDisplay" class="text-xs text-center break-words w-full mt-2 block">No image selected.</span>
+                        <div id="colorLoadingSpinner" class="loader mx-auto"></div>
+                    </label>
+                    <div class="slider-group mt-3">
+                        <label for="numColorsSlider">Colors: <span id="numColorsValue">5</span></label>
+                        <input type="range" id="numColorsSlider" min="1" max="10" step="1" value="5">
+                    </div>
+                </div>
+
+                <!-- Controls for Pixelate Tab -->
+                <div id="pixelate-controls" class="controls-group" style="display:none;">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-2">Pixelate Mode</h3>
+                    <p class="text-xs text-gray-500 mb-2">
+                        Upload image or use main.
+                    </p>
+                    <label id="pixelateDropZone" class="drop-zone">
+                        <span class="text-sm text-gray-400 pointer-events-none">Drag & drop image or click to upload</span>
+                        <input type="file" id="pixelateImageInput" accept="image/*">
+                        <span id="pixelateFileNameDisplay" class="text-xs text-center break-words w-full mt-2 block">No image selected.</span>
+                        <div id="pixelateLoadingSpinner" class="loader mx-auto"></div>
+                    </label>
+                    <div class="slider-group mt-3">
+                        <label for="pixelSizeSlider">Pixel Size: <span id="pixelSizeValue">8px</span></label>
+                        <input type="range" id="pixelSizeSlider" min="1" max="50" step="1" value="8">
+                    </div>
+                </div>
+
+                <!-- Controls for Animation Combiner Tab -->
+                <div id="animation-combiner-controls" class="controls-group" style="display:none;">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-2">Animation Combiner</h3>
+                    <p class="text-xs text-gray-500 mb-2">
+                        Upload a character and one or more animations.
+                    </p>
+                    <div class="flex flex-col items-center gap-4 w-full">
+                        <!-- Character Upload -->
+                        <div class="w-full">
+                            <label for="characterFbxInput" class="custom-file-upload w-full">
+                                Upload Character FBX
+                            </label>
+                            <input type="file" id="characterFbxInput" accept=".fbx">
+                            <span id="characterFileNameDisplay" class="text-xs text-center break-words w-full mt-1 block">No character file selected.</span>
+                        </div>
+
+                        <!-- Animations Upload -->
+                        <div class="w-full">
+                            <label for="animationFbxInput" class="custom-file-upload w-full">
+                                Upload Animation(s) FBX
+                            </label>
+                            <input type="file" id="animationFbxInput" accept=".fbx" multiple>
+                            <span id="animationFileNameDisplay" class="text-xs text-center break-words w-full mt-1 block">No animation files selected.</span>
+                        </div>
+                    </div>
+                    <div class="controls-group mt-3">
+                        <label for="animationSelect" class="text-xs font-medium">Select Animation:</label>
+                        <select id="animationSelect">
+                            <option value="">-- Load animations first --</option>
+                        </select>
+                    </div>
+                    <div class="slider-group">
+                        <label for="animationSpeedSlider">Speed: <span id="animationSpeedValue">1.00</span></label>
+                        <input type="range" id="animationSpeedSlider" min="0.1" max="2.0" step="0.01" value="1.0">
+                    </div>
+                    <div class="flex items-center gap-1 mt-2">
+                        <input type="checkbox" id="enableRootMotion" class="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded cursor-pointer bg-gray-700">
+                        <label for="enableRootMotion" class="cursor-pointer select-none text-xs">Enable Root Motion</label>
+                    </div>
+                    <button id="loadAndPlayAnimationsButton" class="custom-file-upload mt-2">Load & Play</button>
+                </div>
+
+                <!-- Controls for Image to Mesh Tab -->
+                <div id="image-to-mesh-controls" class="controls-group" style="display:none;">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-2">Image to Mesh</h3>
+                    <p class="text-xs text-gray-500 mb-2">
+                        Upload an image to convert it into a 3D mesh. Lighter areas will be higher.
+                    </p>
+                    <label id="meshDropZone" class="drop-zone">
+                        <span class="text-sm text-gray-400 pointer-events-none">Drag & drop image or click to upload</span>
+                        <input type="file" id="meshImageInput" accept="image/*">
+                        <span id="meshFileNameDisplay" class="text-xs text-center break-words w-full mt-2 block">No image selected.</span>
+                        <div id="meshLoadingSpinner" class="loader mx-auto"></div>
+                    </label>
+                    <div class="slider-group mt-3">
+                        <label for="meshDetailSlider">Detail (Subdivisions): <span id="meshDetailValue">64</span></label>
+                        <input type="range" id="meshDetailSlider" min="16" max="512" step="16" value="64">
+                    </div>
+                    <div class="slider-group mt-2">
+                        <label for="meshHeightSlider">Height Scale: <span id="meshHeightValue">2</span></label>
+                        <input type="range" id="meshHeightSlider" min="0" max="200" step="1" value="2">
+                    </div>
+                    <div class="flex items-center gap-1 mt-2">
+                        <input type="checkbox" id="smoothMeshCheckbox" class="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 border-gray-500 rounded cursor-pointer bg-gray-700" checked>
+                        <label for="smoothMeshCheckbox" class="cursor-pointer select-none text-xs">Smooth Mesh</label>
+                    </div>
+                    <div class="slider-group mt-2" id="meshSmoothingControls" style="display: flex;">
+                        <label for="meshSmoothingIterationsSlider">Smoothing Iterations: <span id="meshSmoothingIterationsValue">2</span></label>
+                        <input type="range" id="meshSmoothingIterationsSlider" min="1" max="10" step="1" value="2">
+                    </div>
+                    <!-- NEW: Mesh Preview Mode Selector -->
+                    <div class="controls-group mt-2">
+                        <label for="meshPreviewModeSelect" class="text-xs font-medium">Left Preview Mode:</label>
+                        <select id="meshPreviewModeSelect">
+                            <option value="depth">Depth Map (Black & White)</option>
+                            <option value="normal">Normal Map (RGB Colors)</option>
+                            <option value="wireframe" selected>Wireframe</option>
+                        </select>
+                    </div>
+                    <button id="exportGlbButton" class="custom-file-upload mt-2">Export as .GLB</button>
+                </div>
+            </div>
+
+            <!-- Center Panel: Main Content Area (Tabs for tools) -->
+            <div class="main-content-area">
+                <!-- Texture PBR Content -->
+                <!-- This tab is a flex container. On desktop, it becomes a row to create a 3-column layout. -->
+                <div id="texture-pbr-tab" class="tab-content active">
+                    <!-- Middle Column: 3D Canvas Preview -->
+                    <div class="canvas-wrapper flex justify-center items-center" style="flex: 1 1 0; min-width: 0; min-height: 100%; position: relative;">
+                        <button id="resetPbrCameraBtn" class="reset-camera-button" title="Reset Camera">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.18-3.185m-3.181 9.348a8.25 8.25 0 00-11.664 0l-3.18 3.185m3.181-9.348L2.985 19.644" /></svg>
+                        </button>
+                        <canvas id="threeJsCanvas"></canvas>
+                        <!-- Center Canvas Wrapper -->
+                        <div id="threejs-canvas-wrapper" class="w-full h-full"></div>
+                        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-end space-x-2">
+                            <div class="relative">
+                                <button id="meshObjectsBtn" class="bg-white px-4 py-2 rounded-md shadow-md flex items-center space-x-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                    <span>Mesh</span>
+                                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+
+                                <!-- Dropdown Menu (initially hidden, shown via JavaScript) -->
+                                <div id="meshObjectsDropdown" class="absolute bottom-full mb-2 bg-white rounded-lg shadow-lg py-2 w-56 hidden">
+                                    <button class="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.523 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.523 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
+                                    <span>Generate 3D Mesh</span>
+                                    </button>
+                                    <!-- <button class="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L20 20M6 10a2 2 0 11-4 0 2 2 0 014 0zm2 0a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    <span>Add photos or videos</span>
+                                    </button>
+                                    <button class="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                                    <span>Add files (docs, txt..)</span>
+                                    </button> -->
+                                </div>
+                            </div>    
+                    </div>
+                </div>
+
+                    <!-- Right Column: PBR Controls -->
+                    <div class="right-side-controls-container" style="flex: 0 0 420px; height: 100%; overflow-y: auto; background-color: #f9fafb; border-radius: 0.6rem; padding: 1rem;">
+                        <div class="controls-group">
+                            <h3 class="text-sm font-semibold text-gray-700 mb-2">Color Palette</h3>
+                            <div id="extractedColorPalette" class="color-palette w-full min-h-[70px]">
+                                <!-- Color swatches will be inserted here -->
+                                <p class="text-center w-full text-gray-500 text-sm">Upload an image to see its palette.</p>
+                            </div>
+                        </div>
+
+                        <!-- Styles Section -->
+                        <div class="controls-group">
+                            <div class="flex items-center justify-between mb-3">
+                              <h3 class="text-sm font-semibold text-gray-700">Styles</h3>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                              <div id="styleOriginalBtn" class="rounded-lg overflow-hidden border border-gray-300 cursor-pointer hover:border-blue-500" title="Revert to the original texture.">
+                                <img id="styleOriginalPreviewImg" src="https://placehold.co/100x60/9CA3AF/D1D5DB?text=Original" alt="Original Texture Preview" class="w-full h-auto">
+                              </div>
+                              <div id="stylePixelateBtn" class="rounded-lg overflow-hidden border border-gray-300 cursor-pointer hover:border-blue-500 transition-all" title="Click to show pixelation settings.">
+                                <img id="stylePixelatePreviewImg" src="https://placehold.co/100x60/60A5FA/E0F2FE?text=Pixelate" alt="Pixelate Style Preview" class="w-full h-auto">
+                              </div>
+                            </div>
+                            <!-- Pixelate Settings Panel (Initially Hidden) -->
+                            <div id="pixelateStyleSettings" class="hidden mt-3 p-3 border-t border-gray-200">
+                                <h4 class="text-xs font-semibold text-gray-600 mb-2">Pixelate Settings</h4>
+                                <div class="slider-group">
+                                    <label for="stylePixelSizeSlider">Pixel Size: <span id="stylePixelSizeValue">8px</span></label>
+                                    <input type="range" id="stylePixelSizeSlider" min="2" max="64" step="2" value="8">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="controls-group" id="materialAdjustmentsControlsGroup">
+                            <h3 class="text-sm font-semibold text-gray-700 mb-2">Material & Map Adjustments</h3>
+                            
+                            <div class="slider-group">
+                                <label for="normalStrengthSlider">
+                                    <span>Normal Strength: <span id="normalStrengthValue">1.00</span></span>
+                                    <button class="reset-slider-button" data-slider-id="normalStrengthSlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="normalStrengthSlider" min="0.0" max="10.0" step="0.50" value="1.0">
+                            </div>
+
+                            <div class="slider-group">
+                                <label for="roughnessIntensitySlider">
+                                    <span>Roughness Intensity: <span id="roughnessIntensityValue">1.00</span></span>
+                                    <button class="reset-slider-button" data-slider-id="roughnessIntensitySlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="roughnessIntensitySlider" min="0.0" max="2.0" step="0.01" value="1.0">
+                            </div>
+
+                            <div class="slider-group">
+                                <label for="aoContrastSlider">
+                                    <span>AO Contrast: <span id="aoContrastValue">1.00</span></span>
+                                    <button class="reset-slider-button" data-slider-id="aoContrastSlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="aoContrastSlider" min="0.0" max="2.0" step="0.01" value="1.0">
+                            </div>
+                            <div class="slider-group">
+                                <label for="aoIntensitySlider">
+                                    <span>AO Intensity: <span id="aoIntensityValue">1.00</span></span>
+                                    <button class="reset-slider-button" data-slider-id="aoIntensitySlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="aoIntensitySlider" min="0.0" max="1.0" step="0.01" value="1.0">
+                            </div>
+
+                            <div class="slider-group">
+                                <label for="metallicSharpnessSlider">
+                                    <span>Metallic Sharpness: <span id="metallicSharpnessValue">0.5</span></span>
+                                    <button class="reset-slider-button" data-slider-id="metallicSharpnessSlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="metallicSharpnessSlider" min="0.0" max="1.0" step="0.01" value="0.5">
+                            </div>
+
+                            <div class="slider-group">
+                                <label for="displacementDetailSlider">
+                                    <span>Displacement Detail: <span id="displacementDetailValue">0.30</span></span>
+                                    <button class="reset-slider-button" data-slider-id="displacementDetailSlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="displacementDetailSlider" min="0.0" max="2.0" step="0.01" value="0.30">
+                            </div>
+                            <div class="slider-group">
+                                <label for="displacementScaleSlider">
+                                    <span>Displacement Scale: <span id="displacementScaleValue">0.01</span></span>
+                                    <button class="reset-slider-button" data-slider-id="displacementScaleSlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="displacementScaleSlider" min="0.0" max="1.0" step="0.01" value="0.01">
+                            </div>
+                            <div class="slider-group">
+                                <label for="displacementBiasSlider">
+                                    <span>Displacement Bias: <span id="displacementBiasValue">-0.02</span></span>
+                                    <button class="reset-slider-button" data-slider-id="displacementBiasSlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="displacementBiasSlider" min="-0.5" max="0.5" step="0.01" value="-0.02">
+                            </div>
+                        </div>
+
+                        <div class="controls-group">
+                            <div class="slider-group">
+                                <label for="sunAzimuthSlider">
+                                    <span>Sun Azimuth: <span id="sunAzimuthValue">180</span>°</span>
+                                    <button class="reset-slider-button" data-slider-id="sunAzimuthSlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="sunAzimuthSlider" min="0" max="360" step="1" value="180">
+                            </div>
+                            <div class="slider-group">
+                                <label for="sunElevationSlider">
+                                    <span>Sun Elevation: <span id="sunElevationValue">35</span>°</span>
+                                    <button class="reset-slider-button" data-slider-id="sunElevationSlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="sunElevationSlider" min="0" max="90" step="1" value="35">
+                            </div>
+                            <div class="slider-group">
+                                <label for="sunIntensitySlider">
+                                    <span>Sun Intensity: <span id="sunIntensityValue">1.00</span></span>
+                                    <button class="reset-slider-button" data-slider-id="sunIntensitySlider" title="Reset to default">↺</button>
+                                </label>
+                                <input type="range" id="sunIntensitySlider" min="0" max="5" step="0.01" value="1.0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Color Extractor Tab Content -->
+                <div id="color-extractor-tab" class="tab-content">
+                    <div class="canvas-wrapper w-full flex justify-center items-center">
+                        <canvas id="colorExtractorCanvas" width="600" height="380"></canvas>
+                    </div>
+
+                </div>
+
+                <!-- Pixelate Tab Content -->
+                <div id="pixelate-tab" class="tab-content">
+                    <h1 class="text-center mb-2 tracking-tight">
+                        Pixelate Image
+                    </h1>
+                    <p class="text-center text-sm leading-tight max-w-xl mx-auto mb-3">
+                        Transform your image into a pixelated artwork by adjusting the pixel size.
+                    </p>
+                    <div class="canvas-container">
+                        <h2 class="text-base">Pixelated Image Preview</h2>
+                        <div class="canvas-wrapper w-full flex justify-center items-center" style="height: 380px; max-height: 50vh;">
+                            <canvas id="pixelateCanvas" width="600" height="380"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Animation Combiner Tab Content -->
+                <div id="animation-combiner-tab" class="tab-content">
+                    <h1 class="text-center mb-2 tracking-tight">
+                        Animation Combiner
+                    </h1>
+                    <p class="text-center text-sm leading-tight max-w-xl mx-auto mb-3">
+                        (Conceptual Feature) Blend multiple FBX animations for character models.
+                    </p>
+
+                    <div class="canvas-container" style="flex-grow: 1; min-height: 0;">
+                        <h2 class="text-base">3D Animation Preview</h2>
+                        <div id="animationCanvasWrapper" class="canvas-wrapper w-full flex-grow justify-center items-center">
+                            <p id="animationPlaceholderText" class="text-center text-gray-500 text-sm p-4">Upload a character and animation files, then click "Load & Play".</p>
+                            <canvas id="animationCombinerThreeJsCanvas" style="display:none; width: 100%; height: 100%;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image to Mesh Tab Content -->
+                <div id="image-to-mesh-tab" class="tab-content">
+                    <div class="relative">
+                        <h1 class="text-center mb-2 tracking-tight">
+                            Image to 3D Mesh Converter
+                        </h1>
+                        <p class="text-center text-sm leading-tight max-w-xl mx-auto mb-3">
+                            Generate a 3D mesh from a 2D image's brightness values. Use the controls on the left to adjust the result.
+                        </p>
+                        <button id="resetMeshCameraBtn" class="reset-camera-button" title="Reset Camera" style="top: 0; left: 0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 18px; height: 18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.18-3.185m-3.181 9.348a8.25 8.25 0 00-11.664 0l-3.18 3.185m3.181-9.348L2.985 19.644" /></svg>
+                        </button>
+                    </div>
+
+                    <div id="mesh-previews-container" class="flex flex-col lg:flex-row gap-4" style="flex-grow: 1; min-height: 0;">
+                        <!-- Left Preview: Depth/Geometry -->
+                        <div class="canvas-container flex-1" style="min-width: 0;">
+                            <h2 class="text-base">Depth Preview (Geometry)</h2>
+                            <div id="meshDepthCanvasWrapper" class="canvas-wrapper w-full flex-grow justify-center items-center">
+                                <p id="meshDepthPlaceholderText" class="text-center text-gray-500 text-sm p-4">Upload an image to generate a mesh.</p>
+                                <canvas id="imageToMeshDepthCanvas" style="display:none; width: 100%; height: 100%;"></canvas>
+                            </div>
+                        </div>
+                        <!-- Right Preview: Textured Mesh -->
+                        <div class="canvas-container flex-1" style="min-width: 0;">
+                            <h2 class="text-base">Textured Mesh Preview</h2>
+                            <div id="meshCanvasWrapper" class="canvas-wrapper w-full flex-grow justify-center items-center">
+                                <p id="meshPlaceholderText" class="text-center text-gray-500 text-sm p-4">Upload an image to generate a mesh.</p>
+                                <canvas id="imageToMeshThreeJsCanvas" style="display:none; width: 100%; height: 100%;"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1003,7 +1238,7 @@
         const { FBXLoader } = THREE;
         const { OrbitControls } = THREE;
         /**
-         * This script handles all the client-side logic for the 3D Artist Toolbox.
+         * This script handles all the client-side logic for the 3D Creative Toolbox.
          * It includes tab switching, image processing for map generation, 3D rendering with Three.js,
          * and interactive controls for various artistic effects.
          */
@@ -1043,7 +1278,7 @@
 
 
         const exportResolutionSelect = document.getElementById('exportResolution');
-        const exportButton = document.getElementById('exportButton');
+        const exportButtonDropdown = document.getElementById('exportButtonDropdown'); // Renamed from exportButtonModal
 
         const normalStrengthSlider = document.getElementById('normalStrengthSlider');
         const normalStrengthValueSpan = document.getElementById('normalStrengthValue');
@@ -1054,13 +1289,13 @@
         const displacementBiasSlider = document.getElementById('displacementBiasSlider');
         const displacementBiasValueSpan = document.getElementById('displacementBiasValue');
 
-        // Export Checkboxes
-        const exportOriginalTextureCheckbox = document.getElementById('exportOriginalTexture');
-        const exportNormalMapCheckbox = document.getElementById('exportNormalMap');
-        const exportRoughnessMapCheckbox = document.getElementById('exportRoughnessMap');
-        const exportAOMapCheckbox = document.getElementById('exportAOMap');
-        const exportMetallicMapCheckbox = document.getElementById('exportMetallicMap');
-        const exportDisplacementMapCheckbox = document.getElementById('exportDisplacementMap');
+        // Export Checkboxes (Renamed to denote they are in the dropdown)
+        const exportOriginalTextureDropdownCheckbox = document.getElementById('exportOriginalTextureDropdown');
+        const exportNormalMapDropdownCheckbox = document.getElementById('exportNormalMapDropdown');
+        const exportRoughnessMapDropdownCheckbox = document.getElementById('exportRoughnessMapDropdown');
+        const exportAOMapDropdownCheckbox = document.getElementById('exportAOMapDropdown');
+        const exportMetallicMapDropdownCheckbox = document.getElementById('exportMetallicMapDropdown');
+        const exportDisplacementMapDropdownCheckbox = document.getElementById('exportDisplacementMapDropdown');
 
         // 2D Map Generation Adjustment Sliders
         const roughnessIntensitySlider = document.getElementById('roughnessIntensitySlider');
@@ -1096,6 +1331,11 @@
         const pixelSizeSlider = document.getElementById('pixelSizeSlider');
         const pixelSizeValueSpan = document.getElementById('pixelSizeValue');
         const pixelateCanvas = document.getElementById('pixelateCanvas');
+        const stylePixelateBtn = document.getElementById('stylePixelateBtn');
+        const pixelateStyleSettings = document.getElementById('pixelateStyleSettings');
+        const stylePixelSizeSlider = document.getElementById('stylePixelSizeSlider');
+        const stylePixelSizeValue = document.getElementById('stylePixelSizeValue');
+        const styleOriginalBtn = document.getElementById('styleOriginalBtn');
 
         // Animation Combiner related variables
         const characterFbxInput = document.getElementById('characterFbxInput');
@@ -1132,6 +1372,10 @@
         const resetPbrCameraBtn = document.getElementById('resetPbrCameraBtn');
         const resetMeshCameraBtn = document.getElementById('resetMeshCameraBtn');
 
+        // Add Objects Dropdown elements
+        const meshObjectsBtn = document.getElementById('meshObjectsBtn');
+        const meshObjectsDropdown = document.getElementById('meshObjectsDropdown');
+
 
         // Tab and Control Group elements
         const textureWeaverTab = document.getElementById('texture-pbr-tab');
@@ -1145,6 +1389,14 @@
         const pixelateControls = document.getElementById('pixelate-controls');
         const animationCombinerControls = document.getElementById('animation-combiner-controls');
         const imageToMeshControls = document.getElementById('image-to-mesh-controls');
+
+        // Header and Dropdown Elements
+        const appLauncherBtn = document.getElementById('appLauncherBtn');
+        const exportButtonHeader = document.getElementById('exportButtonHeader');
+        const tabSelectionDropdown = document.getElementById('tabSelectionDropdown');
+        const exportOptionsDropdown = document.getElementById('exportOptionsDropdown');
+        // The actual tab buttons are now inside the dropdown
+        const tabButtonsInDropdown = tabSelectionDropdown.querySelectorAll('.tab-button');
 
 
         // --- 2D Canvas Contexts ---
@@ -1189,7 +1441,8 @@
         const TILE_FACTOR = 5; // How many times the texture should repeat on the ground plane's longest dimension.
 
         // --- Three.js Variables ---
-        let scene, camera, renderer, mesh, planeMesh, textureGroup, textureWeaverMaterial, defaultGroundMaterial, texturedGroundMaterial, sunLight;
+        let scene, camera, renderer, dirLight, textureWeaverMaterial, defaultGroundMaterial, texturedGroundMaterial, sunLight, pbrOrbitControls;
+        let mesh, planeMesh, textureGroup; // Declared here to ensure global scope
         let isDragging = false;
         let previousMouseX = 0;
         let previousMouseY = 0;
@@ -1208,6 +1461,14 @@
         const initialRootBonePosition = new THREE.Vector3();
         const initialRootBoneQuaternion = new THREE.Quaternion();
 
+        // --- Monthly Income Progress Bar Variables ---
+        let currentMonthlyIncome = 0; // Placeholder: Current income received
+        const desiredMonthlyIncome = 100; // Placeholder: Desired monthly income
+
+        // --- DOM Element References for Progress Bar ---
+        const incomeText = document.getElementById('incomeText');
+        const incomeProgressBar = document.getElementById('incomeProgressBar');
+        const percentageText = document.getElementById('percentageText');
 
         // --- Helper Functions ---
 
@@ -1355,6 +1616,19 @@
         }
 
         /**
+         * Determines if a color is light or dark to set a contrasting text color.
+         * @param {number} r Red (0-255)
+         * @param {number} g Green (0-255)
+         * @param {number} b Blue (0-255)
+         * @returns {boolean} True if the color is light, false if dark.
+         */
+        function isColorLight(r, g, b) {
+            // Using the luminance formula
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.5;
+        }
+
+        /**
          * Converts RGB to Hex color string.
          * @param {number} r
          * @param {number} g
@@ -1450,7 +1724,7 @@
                 showMessageBox("Error reading image file. Please try again.", 'error');
                 // Reset specific image if it was the one that failed
                 if (fileInput.id === 'textureInput') { sharedImage = null; sharedFileName = "Error reading file."; }
-                else if (fileInput.id === 'stylizeImageInput') { stylizeLocalImage = null; stylizeFileNameDisplay.textContent = "Error reading file."; }
+                    else if (fileInput.id === 'stylizeImageInput') { stylizeLocalImage = null; stylizeFileNameDisplay.textContent = "Error reading file."; }
                 else if (fileInput.id === 'pixelateImageInput') { pixelateLocalImage = null; pixelateFileNameDisplay.textContent = "Error reading file."; }
                 else if (fileInput.id === 'pixelateImageInput') { pixelateLocalImage = null; pixelateFileNameDisplay.textContent = "Error reading file."; }
                 updateAllFileDisplays();
@@ -1506,7 +1780,9 @@
                         clearCanvas(aoCtx);
                         clearCanvas(metallicCtx);
                         clearCanvas(displacementCtx);
+                        extractColorPalette(null); // Clear the palette
                         updateThreeJsTextures();
+                        updateStylePreviews(); // Reset style previews
                         return;
                     }
                     // 1. Draw to the small UI preview canvas
@@ -1529,26 +1805,31 @@
                     // Adjust the 3D mesh scale and position to match the texture's aspect ratio
                     if (mesh && imageToProcess) {
                         const aspect = imageToProcess.width / imageToProcess.height;
-                        const maxDim = 1.0; // The longest side of the box will be 1 unit.
-                        let sx, sy, sz;
+                        const defaultHeight = 1.0; // The height of the plane in 3D units
 
-                        if (aspect > 1) { // Wider than tall (landscape)
-                            sx = maxDim;
-                            sy = maxDim / aspect;
-                            sz = maxDim / aspect; // Keep depth proportional to the smaller side (height)
-                        } else { // Taller than wide (portrait) or square
-                            sx = maxDim * aspect;
-                            sy = maxDim;
-                            sz = maxDim * aspect; // Keep depth proportional to the smaller side (width)
+                        let scaledWidth = defaultHeight * aspect;
+                        let scaledHeight = defaultHeight;
+
+                        // Ensure the widest dimension isn't excessively large if image is very wide/tall
+                        const maxDisplayDimension = 1.5; // Cap the max visible dimension in 3D scene
+                        if (scaledWidth > maxDisplayDimension) {
+                            scaledHeight = (maxDisplayDimension / scaledWidth) * scaledHeight;
+                            scaledWidth = maxDisplayDimension;
                         }
-                        mesh.scale.set(sx, sy, sz);
-                        // Adjust position to sit on the ground plane
-                        mesh.position.y = (sy / 2.0) - 0.5;
+                        if (scaledHeight > maxDisplayDimension) {
+                            scaledWidth = (maxDisplayDimension / scaledHeight) * scaledWidth;
+                            scaledHeight = maxDisplayDimension;
+                        }
+
+                        mesh.scale.set(scaledWidth, scaledHeight, 1); // Z-scale is 1 for a plane
+                        mesh.position.y = 0; // Plane is centered vertically
                     }
 
                     // 3. Generate all maps from the full-resolution source.
                     // This function will also handle updating the 3D view and UI previews.
                     generateMaps();
+                    extractColorPalette(imageToProcess);
+                    updateStylePreviews();
                     break;
                 case 'color-extractor-tab':
                     imageToProcess = colorExtractorLocalImage || sharedImage; // Prioritize local, then shared
@@ -1649,11 +1930,17 @@
          * Resets the PBR camera and object rotation to their default state.
          */
         function resetPbrCamera() {
-            if (camera && textureGroup) {
-                // Reset camera zoom/position
-                camera.position.set(0, 0.5, 2.5);
-                // Reset object rotation
+            if (pbrOrbitControls && mesh && textureGroup) {
+                // Reset OrbitControls
+                pbrOrbitControls.reset();
+
+                // Reset mesh rotation to default (facing camera, upright)
+                mesh.rotation.set(0, 0, 0);
+                // Also reset the parent group rotation if it was modified by the mouse.
                 textureGroup.rotation.set(0, 0, 0);
+                
+                // Update controls to reflect reset
+                pbrOrbitControls.update();
             }
         }
 
@@ -1674,9 +1961,9 @@
          */
         function initThreeJsTextureWeaver(canvasElement, textureWeaverTabElement) {
             scene = new THREE.Scene(); // No background color, will be set by HDRI
-
-            camera = new THREE.PerspectiveCamera(50, canvasElement.clientWidth / canvasElement.clientHeight, 0.1, 1000);
-            camera.position.set(0, 0.5, 2.5); // Adjusted camera position for a better view
+            // Camera Position
+            camera = new THREE.PerspectiveCamera(45, canvasElement.clientWidth / canvasElement.clientHeight, 0.1, 1000);
+            camera.position.set(0.0, 0.25, 0.65); // Position suitable for viewing a plane
             camera.lookAt(scene.position); // Look at the center (0,0,0)
 
 
@@ -1700,14 +1987,20 @@
                 .setDataType(THREE.UnsignedByteType) // Use UnsignedByteType for .hdr files
                 // Use the version from the Three.js examples repo, which has the correct CORS headers.
                 // The Polyhaven direct link does not, causing a loading error in the browser.
-                .load('https://threejs.org/examples/textures/equirectangular/royal_esplanade_1k.hdr', function (texture) {
+                .load('https://threejs.org/examples/textures/equirectangular/venice_sunset_1k.hdr', function (texture) {
+                    texture.mapping = THREE.EquirectangularReflectionMapping;
+
                     const pmremGenerator = new THREE.PMREMGenerator(renderer);
                     pmremGenerator.compileEquirectangularShader();
+
                     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+
                     scene.background = envMap;
-                    scene.environment = envMap; // Apply to all materials in the scene
+                    scene.environment = envMap;
+
                     texture.dispose();
                     pmremGenerator.dispose();
+
                 }, undefined, (err) => {
                     console.error('An error occurred loading the HDRI.', err);
                     showMessageBox('Failed to load HDRI environment map. Using fallback lighting.', 'error');
@@ -1715,11 +2008,13 @@
                 });
 
             // Add a directional light to act as a controllable sun
-            sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            sunLight = new THREE.DirectionalLight(0xffffff, 3.0); // Increased intensity to 3.0
             sunLight.castShadow = true;
             // Configure shadow properties for better quality
             sunLight.shadow.mapSize.width = 2048;
             sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.radius = 16; // Added for softer shadows
+            sunLight.shadow.bias = - 0.0005; // Added to prevent shadow acne
             sunLight.shadow.camera.near = 0.5;
             sunLight.shadow.camera.far = 50;
             sunLight.shadow.camera.left = -10;
@@ -1739,24 +2034,29 @@
                 }
             });
 
-            const geometry = new THREE.BoxGeometry(1, 1, 1, 64, 64, 64); // Increased segments for displacement
+            // Change from BoxGeometry to PlaneGeometry for the main object
+            const geometry = new THREE.PlaneGeometry(1, 1, 256, 256); // Start with 1x1 plane, high segments for displacement
+            geometry.rotateX(Math.PI / 2); // Rotate to be upright (like a wall)
+
             textureWeaverMaterial = new THREE.MeshStandardMaterial({
                 color: 0xffffff,
                 roughness: 1.0,
-                metalness: 0.0
+                metalness: 0.0,
+                side: THREE.DoubleSide // Important for planes if you might see both sides
             });
 
-            // Create a group to hold the cube and the ground plane, so they rotate together
+            // Create a group to hold the plane and the ground plane, so they rotate together
             textureGroup = new THREE.Group();
             scene.add(textureGroup);
 
             mesh = new THREE.Mesh(geometry, textureWeaverMaterial);
             mesh.castShadow = true; // The main object should cast shadows
-            textureGroup.add(mesh);
+            mesh.visible = false; // Hide the main plane, only show the ground
+            textureGroup.add(mesh); // Add the plane to the group
 
             // Create the ground plane
             const planeSize = 10;
-            const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize); // UVs are now default (0-1)
+            const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize, 256, 256); // Add segments for displacement
 
             // Create the default grid material for the ground when no texture is loaded.
             const gridTexture = generateGridTexture();
@@ -1769,71 +2069,32 @@
                 metalness: 0.1
             });
 
-            // Also create the material for the ground when it's textured. This material will NOT have displacement.
-            texturedGroundMaterial = new THREE.MeshStandardMaterial({
+            // Also create the material for the ground when it's textured.
+            texturedGroundMaterial = new THREE.MeshStandardMaterial({ // This will now have displacement
                 color: 0xffffff,
                 roughness: 0.8,
                 metalness: 0.1
             });
             planeMesh = new THREE.Mesh(planeGeometry, defaultGroundMaterial); // Use the grid material by default
             planeMesh.rotation.x = -Math.PI / 2; // Rotate to be horizontal
-            planeMesh.position.y = -0.50; // Position it just below the cube
+            planeMesh.position.y = 0; // Position the ground at the origin
             planeMesh.receiveShadow = true; // The ground should receive shadows
-            textureGroup.add(planeMesh);
+            textureGroup.add(planeMesh); // Add ground plane to the group so it also rotates
 
-            // The Ambient and Directional lights are no longer needed,
-            // as the HDRI provides much more realistic image-based lighting.
 
-            // Manual mouse controls for rotation (replacing OrbitControls)
-            canvasElement.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                previousMouseX = e.clientX;
-                previousMouseY = e.clientY;
-                canvasElement.style.cursor = 'grabbing';
-            });
+            // Use OrbitControls instead of manual mouse controls for better interaction
+            pbrOrbitControls = new OrbitControls(camera, renderer.domElement);
+            pbrOrbitControls.target.set(0, 0, 0); // Point controls at the origin where the plane is
+            pbrOrbitControls.enablePan = true; // Enable panning
+            pbrOrbitControls.enableDamping = true; // Enable damping (smoothness)
+            pbrOrbitControls.dampingFactor = 0.05;
+            pbrOrbitControls.update();
+            pbrOrbitControls.saveState(); // Save initial state for reset button
 
-            canvasElement.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                const deltaX = e.clientX - previousMouseX;
-                const deltaY = e.clientY - previousMouseY;
+            // Add an event listener to call render when controls change
+            pbrOrbitControls.addEventListener('change', render);
 
-                // Rotate group based on mouse movement
-                textureGroup.rotation.y += deltaX * 0.005;
-                textureGroup.rotation.x += deltaY * 0.005;
-
-                previousMouseX = e.clientX;
-                previousMouseY = e.clientY;
-            });
-
-            canvasElement.addEventListener('mouseup', () => {
-                isDragging = false;
-                canvasElement.style.cursor = 'grab';
-            });
-
-            canvasElement.addEventListener('mouseleave', () => {
-                isDragging = false; // Stop dragging if mouse leaves canvas
-                canvasElement.style.cursor = 'grab';
-            });
-
-            canvasElement.addEventListener('wheel', (e) => {
-                e.preventDefault(); // Prevent the page from scrolling
-
-                const zoomSpeed = 0.005;
-                const minZoom = 1.5; // Prevent zooming in too close
-                const maxZoom = 10;  // Prevent zooming out too far
-
-                // Get the camera's current distance from the center (origin)
-                let distance = camera.position.length();
-
-                // Adjust the distance based on the scroll wheel delta
-                distance += e.deltaY * zoomSpeed;
-
-                // Clamp the distance to the min/max zoom limits
-                distance = Math.max(minZoom, Math.min(maxZoom, distance));
-
-                // Set the new camera position by scaling its direction vector
-                camera.position.normalize().multiplyScalar(distance);
-            });
+            // Removed manual mouse controls and wheel events. OrbitControls handles all of this.
 
             animateThreeJsTextureWeaver();
         }
@@ -1872,11 +2133,21 @@
         function animateThreeJsTextureWeaver() {
             requestAnimationFrame(animateThreeJsTextureWeaver);
             
-            // Auto-rotate the mesh if not being dragged
-            if (!isDragging) {
-                textureGroup.rotation.y += 0.001; // Adjust rotation speed as needed
+            // Auto-rotation removed, OrbitControls handles camera movement
+
+            if (pbrOrbitControls) { // Update controls in the animation loop if damping is enabled
+                pbrOrbitControls.update();
             }
 
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        /**
+         * A simple render function for Three.js.
+         */
+        function render() {
             if (renderer && scene && camera) {
                 renderer.render(scene, camera);
             }
@@ -1923,7 +2194,7 @@
                 return texture;
             };
 
-            // Create new CanvasTextures for the main box material (no UV aspect correction)
+            // Create new CanvasTextures for the main plane material (no UV aspect correction)
             textureWeaverMaterial.map = createBaseTexture(fullResOriginalCanvas);
             textureWeaverMaterial.normalMap = createBaseTexture(fullResNormalCanvas);
             textureWeaverMaterial.roughnessMap = createBaseTexture(fullResRoughnessCanvas);
@@ -1965,12 +2236,12 @@
                 texturedGroundMaterial.roughnessMap = setupGroundTexture(textureWeaverMaterial.roughnessMap);
                 texturedGroundMaterial.aoMap = setupGroundTexture(textureWeaverMaterial.aoMap);
                 texturedGroundMaterial.metalnessMap = setupGroundTexture(textureWeaverMaterial.metalnessMap);
-                texturedGroundMaterial.displacementMap = null; // Explicitly disable displacement
+                texturedGroundMaterial.displacementMap = setupGroundTexture(textureWeaverMaterial.displacementMap); // Enable displacement
 
                 texturedGroundMaterial.normalScale.copy(textureWeaverMaterial.normalScale);
                 texturedGroundMaterial.aoMapIntensity = textureWeaverMaterial.aoMapIntensity;
-                texturedGroundMaterial.displacementScale = 0;
-                texturedGroundMaterial.displacementBias = 0;
+                texturedGroundMaterial.displacementScale = textureWeaverMaterial.displacementScale; // Sync displacement scale
+                texturedGroundMaterial.displacementBias = textureWeaverMaterial.displacementBias; // Sync displacement bias
                 texturedGroundMaterial.needsUpdate = true;
             } else {
                 // Clear ground textures if no image
@@ -1979,6 +2250,7 @@
                 texturedGroundMaterial.roughnessMap = null;
                 texturedGroundMaterial.aoMap = null;
                 texturedGroundMaterial.metalnessMap = null;
+                texturedGroundMaterial.displacementMap = null;
             }
 
             // --- NEW: Sync with Image-to-Mesh Material ---
@@ -1996,31 +2268,32 @@
         function set3DPreviewMode(mapType) {
             if (!textureWeaverMaterial || !sharedImage) return;
 
-            // Remove active state from all containers first
+            // Remove active state from all 2D map containers first
             document.querySelectorAll('.map-grid .canvas-container').forEach(c => c.classList.remove('isolated-view'));
+            // Remove highlight from the material adjustments controls group
+            document.getElementById('materialAdjustmentsControlsGroup').classList.remove('highlighted-controls-group');
+
 
             // If we want to restore the full PBR view, clicking 'Original' or the currently isolated map does this.
-            if (mapType === 'Original Texture') {
-                updateThreeJsTextures(); // This function restores the full PBR material for both cube and ground
-                return;
-            }
-            // If clicking the already isolated map, restore the view.
+            // Also, if the container for the clicked map is already isolated, clicking it again will restore.
             const container = document.querySelector(`.map-grid .canvas-container[data-map-type="${mapType}"]`);
-            if (container && container.classList.contains('isolated-view')) {
-                container.classList.remove('isolated-view');
-                updateThreeJsTextures();
+            if (mapType === 'Color Map' || (container && container.classList.contains('isolated-view'))) {
+                updateThreeJsTextures(); // This function restores the full PBR material for both plane and ground
+                if (container) container.classList.remove('isolated-view'); // Ensure highlight is removed if it was there
                 return;
             }
 
             // --- Isolate a specific map ---
 
-            // Add active state to the clicked container for visual feedback
+            // Add active state to the clicked 2D map container for visual feedback
             if (container) {
                 container.classList.add('isolated-view');
             }
+            // Add highlight to the material adjustments controls group
+            document.getElementById('materialAdjustmentsControlsGroup').classList.add('highlighted-controls-group');
 
-            // Since textures are shared, we only need to dispose the main material's maps.
-            // The ground material's references will become invalid, which is what we want before re-assigning.
+
+            // Dispose old textures on the main material to free up GPU memory
             if (textureWeaverMaterial.map) textureWeaverMaterial.map.dispose();
             if (textureWeaverMaterial.normalMap) textureWeaverMaterial.normalMap.dispose();
             if (textureWeaverMaterial.roughnessMap) textureWeaverMaterial.roughnessMap.dispose();
@@ -2032,7 +2305,8 @@
             const neutralProps = {
                 map: null, normalMap: null, roughnessMap: null, aoMap: null, metalnessMap: null, displacementMap: null,
                 aoMapIntensity: 0.0,
-                roughness: 0.5, metalness: 0.0
+                roughness: 0.5, metalness: 0.0, // Default roughness/metalness if no map
+                color: new THREE.Color(0xffffff) // Reset color to white for isolated view
             };
             Object.assign(textureWeaverMaterial, neutralProps);
             textureWeaverMaterial.displacementScale = 0.0;
@@ -2046,7 +2320,9 @@
                 texturedGroundMaterial.displacementBias = 0.0;
                 texturedGroundMaterial.normalScale.set(0, 0);
             }
+            // Use the fullResOriginalCanvas for "Original Texture" type and all others from their fullRes counterpart.
             const sourceCanvasMap = {
+                'Color Map': fullResOriginalCanvas, // Added original texture to map for consistent handling
                 'Normal Map': fullResNormalCanvas,
                 'Roughness Map': fullResRoughnessCanvas,
                 'Ambient Occlusion Map': fullResAoCanvas,
@@ -2058,18 +2334,22 @@
             const sourceCanvas = sourceCanvasMap[mapType];
 
             if (sourceCanvas) {
-                // Create the base texture for the box (no UV correction)
-                const boxPreviewTexture = new THREE.CanvasTexture(sourceCanvas);
-                boxPreviewTexture.wrapS = THREE.RepeatWrapping;
-                boxPreviewTexture.wrapT = THREE.RepeatWrapping;
-                boxPreviewTexture.encoding = THREE.sRGBEncoding;
-                boxPreviewTexture.needsUpdate = true;
+                // Create the base texture for the plane (no UV correction)
+                const planePreviewTexture = new THREE.CanvasTexture(sourceCanvas);
+                planePreviewTexture.wrapS = THREE.RepeatWrapping;
+                planePreviewTexture.wrapT = THREE.RepeatWrapping;
+                // Only Albedo (Color Map) should have sRGB encoding.
+                planePreviewTexture.encoding = (mapType === 'Color Map') ? THREE.sRGBEncoding : THREE.LinearEncoding;
+                planePreviewTexture.needsUpdate = true;
                 
-                textureWeaverMaterial.map = boxPreviewTexture;
+                textureWeaverMaterial.map = planePreviewTexture;
+                // For isolated views, ensure the object color is white so the map color is fully visible.
+                textureWeaverMaterial.color.setHex(0xffffff);
+
 
                 // Create a cloned, aspect-corrected texture for the ground
                 if (texturedGroundMaterial) {
-                    const groundPreviewTexture = boxPreviewTexture.clone();
+                    const groundPreviewTexture = planePreviewTexture.clone();
                     
                     // Apply the same aspect-ratio-aware tiling to the isolated preview
                     if (aspect >= 1) { // Wider than or equal to tall (square)
@@ -2080,7 +2360,12 @@
                     groundPreviewTexture.offset.set(0, 0);
                     groundPreviewTexture.needsUpdate = true; // Essential after clone and modification
                     texturedGroundMaterial.map = groundPreviewTexture;
+                    texturedGroundMaterial.color.setHex(0xffffff); // Ensure ground is also white
                 }
+            } else {
+                // If mapType is unrecognized or sourceCanvas is null, just show original.
+                updateThreeJsTextures();
+                showMessageBox("Invalid map type selected for preview.", "error");
             }
 
             textureWeaverMaterial.needsUpdate = true;
@@ -2605,12 +2890,13 @@
 
             // CRITICAL FIX: Use the full-resolution canvases for export, not the small UI previews.
             const mapsToExport = [];
-            if (exportOriginalTextureCheckbox.checked) mapsToExport.push({ canvas: fullResOriginalCanvas, name: 'original' });
-            if (exportNormalMapCheckbox.checked) mapsToExport.push({ canvas: fullResNormalCanvas, name: 'normal' });
-            if (exportRoughnessMapCheckbox.checked) mapsToExport.push({ canvas: fullResRoughnessCanvas, name: 'roughness' });
-            if (exportAOMapCheckbox.checked) mapsToExport.push({ canvas: fullResAoCanvas, name: 'ao' });
-            if (exportMetallicMapCheckbox.checked) mapsToExport.push({ canvas: fullResMetallicCanvas, name: 'metallic' });
-            if (exportDisplacementMapCheckbox.checked) mapsToExport.push({ canvas: fullResDisplacementCanvas, name: 'displacement' });
+            // Correctly reference the checkboxes using their 'Dropdown' suffix IDs
+            if (exportOriginalTextureDropdownCheckbox.checked) mapsToExport.push({ canvas: fullResOriginalCanvas, name: 'color' });
+            if (exportNormalMapDropdownCheckbox.checked) mapsToExport.push({ canvas: fullResNormalCanvas, name: 'normal' });
+            if (exportRoughnessMapDropdownCheckbox.checked) mapsToExport.push({ canvas: fullResRoughnessCanvas, name: 'roughness' });
+            if (exportAOMapDropdownCheckbox.checked) mapsToExport.push({ canvas: fullResAoCanvas, name: 'ao' });
+            if (exportMetallicMapDropdownCheckbox.checked) mapsToExport.push({ canvas: fullResMetallicCanvas, name: 'metallic' });
+            if (exportDisplacementMapDropdownCheckbox.checked) mapsToExport.push({ canvas: fullResDisplacementCanvas, name: 'displacement' });
 
             if (mapsToExport.length === 0) {
                 showMessageBox('Please select at least one map to export.', 'info');
@@ -2640,7 +2926,8 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(a.href); // Clean up the URL object
-                showMessageBox(`${mapsToExport.length} map(s) exported as a ZIP file.`, 'success');
+                // showMessageBox(`${mapsToExport.length} map(s) exported as a ZIP file.`, 'success');
+                exportOptionsDropdown.classList.add('hidden'); // Close dropdown after successful export
             }).catch(e => {
                 console.error("Error generating zip file:", e);
                 showMessageBox("Failed to generate ZIP file for export.", 'error');
@@ -2661,8 +2948,9 @@
         function extractColorPalette(imageToProcess) {
             const paletteDiv = document.getElementById('extractedColorPalette');
             if (!imageToProcess) {
-                clearCanvas(colorExtractorCtx);
-                paletteDiv.innerHTML = '<p class="text-center w-full text-gray-500 text-sm"></p>';
+                // If no image, clear the palette and show a message.
+                if (colorExtractorCtx) clearCanvas(colorExtractorCtx);
+                if (paletteDiv) paletteDiv.innerHTML = '<p class="text-center w-full text-gray-500 text-sm">Upload an image to see its palette.</p>';
                 return;
             }
 
@@ -2714,29 +3002,36 @@
             extractedColors.forEach(color => {
                 const swatch = document.createElement('div');
                 const hex = rgbToHex(color.r, color.g, color.b);
-                swatch.className = 'color-swatch';
-                swatch.style.backgroundColor = hex;
-                // Determine text color based on background luminance for readability
-                const luminance = (0.299 * color.r + 0.587 * color.g + 0.114 * color.b) / 255;
-                swatch.style.color = luminance > 0.5 ? '#222222' : '#ffffff'; // Dark text for light background, light text for dark background
-                swatch.style.textShadow = luminance > 0.5 ? 'none' : '0 0 1px rgba(0,0,0,0.8)';
 
-                swatch.textContent = hex;
+                // Add flex properties to center content
+                swatch.className = 'color-swatch flex items-center justify-center';
+                swatch.style.backgroundColor = hex;
                 swatch.title = `Click to copy ${hex}`;
+
+                // Create a span for the text inside the swatch
+                const hexText = document.createElement('span');
+                hexText.textContent = hex;
+                // Determine text color based on background brightness
+                hexText.style.color = isColorLight(color.r, color.g, color.b) ? '#000000' : '#FFFFFF';
+                hexText.style.fontFamily = 'monospace';
+                hexText.style.fontSize = '0.75rem';
+                hexText.style.pointerEvents = 'none'; // So it doesn't interfere with the click on the swatch
+
+                swatch.appendChild(hexText);
+
                 swatch.onclick = () => {
-                    document.execCommand('copy'); // Fallback for clipboard API if not supported or in iframe
-                    const textArea = document.createElement('textarea');
-                    textArea.value = hex;
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        showMessageBox(`Copied ${hex} to clipboard!`, 'success');
-                    } catch (err) {
-                        showMessageBox(`Failed to copy ${hex}. Please copy manually: ${hex}`, 'error');
-                    }
-                    document.body.removeChild(textArea);
+                    navigator.clipboard.writeText(hex).then(() => {
+                        // On success, show "Copied!" message
+                        const originalText = hexText.textContent;
+                        hexText.textContent = 'Copied!';
+                        setTimeout(() => {
+                            hexText.textContent = originalText;
+                        }, 1500); // Revert after 1.5 seconds
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                        // Use the existing message box for errors
+                        showMessageBox(`Failed to copy ${hex}. Please copy manually.`, 'error');
+                    });
                 };
                 paletteDiv.appendChild(swatch);
             });
@@ -2786,6 +3081,133 @@
             pixelateCtx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, originalWidth, originalHeight);
         }
 
+
+        /**
+         * Applies a pixelation effect to the main PBR texture and regenerates all maps.
+         * This is triggered by the "Styles" section in the PBR tab.
+         * @param {number} pixelSize - The size of each "pixel" for the effect.
+         */
+        function applyPixelateStyle(pixelSize = 16) {
+            if (!sharedImage || !pristineSourceCanvas.getContext('2d')) {
+                showMessageBox('Please upload an image first to apply a style.', 'error');
+                return;
+            }
+
+            const sourceCanvas = pristineSourceCanvas;
+            const destCanvas = fullResOriginalCanvas;
+            const destCtx = destCanvas.getContext('2d');
+
+            const originalWidth = sourceCanvas.width;
+            const originalHeight = sourceCanvas.height;
+
+            destCanvas.width = originalWidth;
+            destCanvas.height = originalHeight;
+            destCtx.imageSmoothingEnabled = false; // Crucial for crisp pixels
+
+            const scaledWidth = originalWidth / pixelSize;
+            const scaledHeight = originalHeight / pixelSize;
+
+            // Use a temporary canvas for downscaling
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = scaledWidth;
+            tempCanvas.height = scaledHeight;
+
+            // Draw the pristine source image down to the small temp canvas
+            tempCtx.drawImage(sourceCanvas, 0, 0, scaledWidth, scaledHeight);
+
+            // Draw the small temp canvas back up to the full-res working canvas, creating the pixelated effect
+            destCtx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, originalWidth, originalHeight);
+
+            // The fullResOriginalCanvas is now pixelated. Regenerate all other maps from it.
+            generateMaps();
+        }
+
+        /**
+         * Reverts the main PBR texture to its original, pristine state and regenerates all maps.
+         */
+        function applyOriginalStyle() {
+            if (!sharedImage || !pristineSourceCanvas.getContext('2d')) {
+                showMessageBox('No original texture to restore.', 'error');
+                return;
+            }
+
+            const destCtx = fullResOriginalCanvas.getContext('2d');
+            destCtx.clearRect(0, 0, fullResOriginalCanvas.width, fullResOriginalCanvas.height);
+            destCtx.drawImage(pristineSourceCanvas, 0, 0);
+
+            // The fullResOriginalCanvas is now restored. Regenerate all other maps from it.
+            generateMaps();
+        }
+
+        /**
+         * Generates a pixelated preview of an image as a data URL.
+         * It respects the source image's aspect ratio to prevent stretching.
+         * @param {HTMLImageElement} sourceImage The image to pixelate.
+         * @param {number} maxWidth The maximum width of the output preview.
+         * @param {number} maxHeight The maximum height of the output preview.
+         * @param {number} pixelSize The size of the virtual pixels.
+         * @returns {string|null} A data URL of the pixelated image, or null.
+         */
+        function generatePixelatedPreview(sourceImage, maxWidth, maxHeight, pixelSize) {
+            if (!sourceImage) return null;
+
+            // Calculate dimensions that fit within maxWidth/maxHeight while preserving aspect ratio
+            const sourceAspectRatio = sourceImage.width / sourceImage.height;
+            let targetWidth = maxWidth;
+            let targetHeight = targetWidth / sourceAspectRatio;
+
+            if (targetHeight > maxHeight) {
+                targetHeight = maxHeight;
+                targetWidth = targetHeight * sourceAspectRatio;
+            }
+
+            const previewCanvas = document.createElement('canvas');
+            const previewCtx = previewCanvas.getContext('2d');
+            previewCanvas.width = targetWidth;
+            previewCanvas.height = targetHeight;
+
+            // The pixelation effect is achieved by disabling smoothing and drawing down then up
+            previewCtx.imageSmoothingEnabled = false;
+
+            const scaledWidth = targetWidth / pixelSize;
+            const scaledHeight = targetHeight / pixelSize;
+
+            // Draw the source image down to a tiny size on the preview canvas itself
+            // This draw respects the aspect ratio because the canvas itself has the correct ratio.
+            previewCtx.drawImage(sourceImage, 0, 0, scaledWidth, scaledHeight);
+
+            // Draw that tiny image back up to the full preview canvas size
+            previewCtx.drawImage(previewCanvas, 0, 0, scaledWidth, scaledHeight, 0, 0, targetWidth, targetHeight);
+
+            return previewCanvas.toDataURL();
+        }
+
+        /**
+         * Updates the preview images for the style buttons based on the current shared image.
+         */
+        function updateStylePreviews() {
+            const pixelatePreviewImg = document.getElementById('stylePixelatePreviewImg');
+            const originalPreviewImg = document.getElementById('styleOriginalPreviewImg');
+            if (!pixelatePreviewImg || !originalPreviewImg) return;
+
+            if (!sharedImage) {
+                // Reset to the default placeholder if no image is loaded
+                pixelatePreviewImg.src = 'https://placehold.co/100x60/60A5FA/E0F2FE?text=Pixelate';
+                originalPreviewImg.src = 'https://placehold.co/100x60/9CA3AF/D1D5DB?text=Original';
+                return;
+            }
+
+            // Generate a pixelated preview for the button's image
+            // Using a smaller pixel size for the preview so it's recognizable
+            const pixelatedDataUrl = generatePixelatedPreview(sharedImage, 100, 60, 8);
+            if (pixelatedDataUrl) {
+                pixelatePreviewImg.src = pixelatedDataUrl;
+            }
+
+            // The original preview is just the source image itself
+            originalPreviewImg.src = sharedImage.src;
+        }
 
         // --- Animation Combiner Specific Functions ---
 
@@ -3067,6 +3489,8 @@
             // The main camera needs a large range for zooming, but this one can be constrained to the object's typical distance.
             meshDepthCamera = new THREE.PerspectiveCamera(45, depthWrapper.clientWidth / depthWrapper.clientHeight, 1, 400);
             meshDepthCamera.position.copy(meshCamera.position); // Start at same position
+            meshDepthCamera.aspect = depthWrapper.clientWidth / depthWrapper.clientHeight; // Set aspect ratio for depth camera
+            meshDepthCamera.updateProjectionMatrix(); // Update projection matrix for depth camera
             meshDepthRenderer = new THREE.WebGLRenderer({ canvas: depthCanvas, antialias: true });
             meshDepthRenderer.setPixelRatio(window.devicePixelRatio);
             meshDepthRenderer.setSize(depthWrapper.clientWidth, depthWrapper.clientHeight);
@@ -3325,6 +3749,9 @@
                 planeWidth = planeSize * imageAspectRatio;
             }
             const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight, detail, detail);
+            // Rotate geometry to be vertical like the main PBR plane
+            geometry.rotateX(Math.PI / 2);
+
             const positions = geometry.attributes.position;
 
             const imgWidth = imageData.width;
@@ -3332,6 +3759,8 @@
 
             for (let i = 0; i < positions.count; i++) {
                 // Map vertex position (-planeSize/2 to +planeSize/2) to UV coordinates (0 to 1)
+                // For a vertical plane, X and Y from geometry are still X and Y in local space.
+                // U is based on X, V is based on Y.
                 const u = (positions.getX(i) / planeWidth) + 0.5;
                 const v = 1.0 - ((positions.getY(i) / planeHeight) + 0.5); // Flip V for image coords
 
@@ -3342,7 +3771,7 @@
                 // Get grayscale value (0-1) from the red channel of the heightmap
                 const grayscale = toGrayscale(heightmapData[pixelIndex], heightmapData[pixelIndex + 1], heightmapData[pixelIndex + 2]) / 255.0;
 
-                // Displace the vertex along the Z axis
+                // Displace the vertex along the Z axis (local Z, which is depth from the viewer for a vertical plane)
                 positions.setZ(i, grayscale * heightScale * heightMultiplier); // Apply the new multiplier
             }
 
@@ -3367,7 +3796,7 @@
             });
 
             generatedMesh = new THREE.Mesh(geometry, texturedMaterial);
-            generatedMesh.rotation.x = -Math.PI / 2; // Rotate to be horizontal
+            // No rotation needed here, as geometry is already rotated upright
             meshScene.add(generatedMesh);
 
             // Sync with the PBR material state.
@@ -3406,22 +3835,21 @@
             }
             
             generatedDepthMesh = new THREE.Mesh(geometry, leftPreviewMaterial); // Use the SAME geometry
-            generatedDepthMesh.rotation.x = -Math.PI / 2; // Rotate to be horizontal
+            // No rotation needed here
             meshDepthScene.add(generatedDepthMesh);
         }
         // --- Tab Switching Logic ---
 
         /**
          * Shows the selected tab and hides others.
-         * Manages the 'active' class on buttons and content panes, and also shows/hides
+         * Manages the 'active' class on content panes, and also shows/hides
          * the correct control panels in the left-hand sidebar.
          * @param {string} tabId - The ID of the tab content to show.
          */
         function showTab(tabId) {
             currentActiveTabId = tabId; // Update active tab ID
 
-            // Deactivate all tab buttons and hide all tab content
-            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+            // Deactivate all tab content
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             // Hide all control groups that are direct children of the left panel
             document.querySelectorAll('.left-panel > .controls-group').forEach(controls => controls.style.display = 'none');
@@ -3429,8 +3857,14 @@
             document.querySelector('.right-side-controls-container').style.display = 'none';
 
             // --- UI State Management for the selected tab ---
-            // Activate the clicked tab button
-            document.querySelector(`.tab-button[data-tab-id="${tabId}"]`).classList.add('active');
+            // Update active state in the dropdown's tab buttons
+            tabButtonsInDropdown.forEach(button => {
+                if (button.dataset.tabId === tabId) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
             
             // Show the corresponding tab content and controls
             document.getElementById(tabId).classList.add('active');
@@ -3441,7 +3875,6 @@
                 document.getElementById('threeJsCanvas').style.display = 'block';
             } else {
                 threeJsCanvas.style.cursor = 'default';
-                // largePreviewCanvasContainer.classList.remove('active'); // Removed
                 document.getElementById('threeJsCanvas').style.display = 'none'; // Hide main 3D canvas temporarily
             }
             
@@ -3473,6 +3906,8 @@
                 }
                 // Also show the newly moved controls on the right side
                 document.querySelector('.right-side-controls-container').style.display = 'flex';
+                // Ensure material adjustments are not highlighted if we just switched to PBR tab
+                document.getElementById('materialAdjustmentsControlsGroup').classList.remove('highlighted-controls-group');
             }
 
             // Ensure descriptive text is visible for current tab
@@ -3483,28 +3918,87 @@
             applyEffectToCurrentTab(); // Trigger an update for the newly active tab
         }
 
+        // --- Progress Bar Functionality ---
+        /**
+         * Updates the display of the monthly income progress bar.
+         */
+        function updateProgressBarDisplay() {
+            incomeText.textContent = `$${currentMonthlyIncome} / $${desiredMonthlyIncome}`;
+            let percentage = (currentMonthlyIncome / desiredMonthlyIncome) * 100;
+            percentage = Math.min(100, Math.max(0, percentage)); // Clamp between 0 and 100
+            incomeProgressBar.style.width = `${percentage}%`;
+            percentageText.textContent = `${percentage.toFixed(0)}%`;
+        }
+
+
         // Removed showLargeMapPreview and hideLargeMapPreview functions
 
 
         // --- Initial Setup (runs after DOM is parsed, due to type="module" placement) ---
-        console.log("Initializing 3D Artist Toolbox...");
+        console.log("Initializing 3D Creative Toolbox...");
         clearAllCanvases(); // Clear 2D canvases initially and draw fallback text
 
         // Initialize Three.js after DOM elements are available
         initThreeJsTextureWeaver(threeJsCanvas, textureWeaverTab);
         updateThreeJsTextures(); // Initial texture update for weaver (with empty textures)
         updateSunPosition(); // Set initial sun position
+        updateProgressBarDisplay(); // Set initial progress bar display
         
-        // Attach Event Listeners for Tab Buttons
-        document.querySelectorAll('.tab-button').forEach(button => {
+        // Attach Event Listeners for NEW Header Buttons to toggle dropdowns
+        appLauncherBtn.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent document click from immediately closing
+            tabSelectionDropdown.classList.toggle('hidden');
+            exportOptionsDropdown.classList.add('hidden'); // Close other dropdown if open
+        });
+
+        exportButtonHeader.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent document click from immediately closing
+            exportOptionsDropdown.classList.toggle('hidden');
+            tabSelectionDropdown.classList.add('hidden'); // Close other dropdown if open
+        });
+
+        // Attach Event Listener for Add Objects Dropdown
+        if (meshObjectsBtn && meshObjectsDropdown) {
+            meshObjectsBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                meshObjectsDropdown.classList.toggle('hidden');
+                // Hide other dropdowns for a clean UI
+                tabSelectionDropdown.classList.add('hidden');
+                exportOptionsDropdown.classList.add('hidden');
+            });
+        }
+
+        // Attach Event Listeners for Tab Buttons inside the dropdown
+        tabButtonsInDropdown.forEach(button => {
             button.addEventListener('click', () => {
                 const tabId = button.getAttribute('data-tab-id');
                 if (tabId) {
                     showTab(tabId);
+                    tabSelectionDropdown.classList.add('hidden'); // Close the dropdown after selecting a tab
                 }
             });
         });
 
+        // Attach Event Listener for the Export button inside its dropdown
+        exportButtonDropdown.addEventListener('click', exportAllMaps); // Now correctly referencing the button in the dropdown
+
+
+        // Global click listener to close dropdowns when clicking outside
+        document.addEventListener('click', (event) => {
+            // Check if the click was outside the app launcher button and its dropdown
+            if (!appLauncherBtn.contains(event.target) && !tabSelectionDropdown.contains(event.target)) {
+                tabSelectionDropdown.classList.add('hidden');
+            }
+            // Check if the click was outside the export button and its dropdown
+            if (!exportButtonHeader.contains(event.target) && !exportOptionsDropdown.contains(event.target)) {
+                exportOptionsDropdown.classList.add('hidden');
+            }
+            // Check if the click was outside the add objects button and its dropdown
+            if (meshObjectsBtn && meshObjectsDropdown && !meshObjectsBtn.contains(event.target) && !meshObjectsDropdown.contains(event.target)) {
+                meshObjectsDropdown.classList.add('hidden');
+            }
+        });      
+          
         // Attach Event Listeners - IMAGE UPLOADS
         textureInput.addEventListener('change', (e) => loadImageAndSetShared(e.target.files[0], loadingSpinner, textureInput));
         colorImageInput.addEventListener('change', (e) => loadImageAndSetShared(e.target.files[0], colorLoadingSpinner, colorImageInput));
@@ -3572,8 +4066,6 @@
         sunElevationSlider.addEventListener('input', updateSunPosition);
         sunIntensitySlider.addEventListener('input', updateSunPosition);
 
-        exportButton.addEventListener('click', exportAllMaps);
-
         // Removed Event Listeners for 2D Map Hover Preview
         // document.querySelectorAll('.map-grid .canvas-container').forEach(container => {
         //     const mapType = container.getAttribute('data-map-type');
@@ -3607,6 +4099,34 @@
             pixelSizeValueSpan.textContent = pixelSizeSlider.value + "px";
             applyPixelateEffect(); // Call effect on slider change
         });
+
+        // --- PBR STYLES Event Listeners ---
+        // Toggles the pixelate settings panel
+        stylePixelateBtn.addEventListener('click', () => {
+            // On first click (when settings are hidden), apply the effect immediately.
+            if (pixelateStyleSettings.classList.contains('hidden')) {
+                applyPixelateStyle(parseInt(stylePixelSizeSlider.value));
+            }
+
+            // Then, toggle the visibility of the settings panel for further adjustments.
+            pixelateStyleSettings.classList.toggle('hidden');
+            // Add a visual indicator to the button when settings are open
+            stylePixelateBtn.classList.toggle('border-blue-500');
+            stylePixelateBtn.classList.toggle('border-2');
+        });
+
+        // Updates the pixel size value display in the settings panel on input
+        stylePixelSizeSlider.addEventListener('input', () => {
+            stylePixelSizeValue.textContent = `${stylePixelSizeSlider.value}px`;
+        });
+
+        // Applies the pixelate style when the user releases the slider
+        stylePixelSizeSlider.addEventListener('change', () => {
+            applyPixelateStyle(parseInt(stylePixelSizeSlider.value));
+        });
+
+        // Reverts the texture to original
+        styleOriginalBtn.addEventListener('click', applyOriginalStyle);
 
 
         // Attach Event Listeners - ANIMATION COMBINER CONTROLS

@@ -195,19 +195,9 @@
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-sm font-semibold text-gray-700">Color Palette</h3>
             </div>
-            <div class="grid grid-cols-4 gap-3">
-              <div class="w-14 h-14 rounded-md bg-gray-200 flex items-center justify-center border border-gray-300">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-gray-300 to-gray-500"></div>
-              </div>
-              <div class="w-14 h-14 rounded-md bg-gray-200 flex items-center justify-center border border-gray-300">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-300 to-orange-500"></div>
-              </div>
-              <div class="w-14 h-14 rounded-md bg-gray-200 flex items-center justify-center border border-gray-300">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-gray-700 to-black"></div>
-              </div>
-              <div class="w-14 h-14 rounded-md bg-gray-200 flex items-center justify-center border border-gray-300">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-black to-gray-900"></div>
-              </div>
+            <div id="extractedColorPalette" class="grid grid-cols-4 gap-3">
+              <!-- Color swatches will be dynamically inserted here -->
+              <p class="text-center w-full text-gray-500 text-sm col-span-4">Loading palette...</p>
             </div>
           </div>
 
@@ -271,6 +261,111 @@
   </div>
 
   <script>
+    // --- Helper Functions for Color Extraction ---
+    /**
+     * Converts an RGB color to grayscale luminosity.
+     * @param {number} r - Red component (0-255).
+     * @param {number} g - Green component (0-255).
+     * @param {number} b - Blue component (0-255).
+     * @returns {number} - Grayscale value (0-255).
+     */
+    function toGrayscale(r, g, b) {
+        return 0.299 * r + 0.587 * g + 0.114 * b;
+    }
+
+    /**
+     * Converts RGB to Hex color string.
+     * @param {number} r
+     * @param {number} g
+     * @param {number} b
+     * @returns {string} Hex color (e.g., "#RRGGBB")
+     */
+    function rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+    }
+
+    /**
+     * Extracts dominant colors from the given image.
+     * @param {HTMLImageElement} imageToProcess - The image to extract colors from.
+     */
+    function extractColorPalette(imageToProcess) {
+        const paletteDiv = document.getElementById('extractedColorPalette');
+        if (!imageToProcess) {
+            paletteDiv.innerHTML = '<p class="text-center w-full text-gray-500 text-sm col-span-4">No image loaded.</p>';
+            return;
+        }
+
+        const numColors = 8; // Fixed number of colors to extract for this UI
+        paletteDiv.innerHTML = ''; // Clear previous palette
+
+        // Downsample image for faster processing if it's too large
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        const sampleSize = 100; // Sample to 100x100 for color extraction speed
+        tempCanvas.width = sampleSize;
+        tempCanvas.height = sampleSize;
+        tempCtx.drawImage(imageToProcess, 0, 0, sampleSize, sampleSize);
+
+        const imageData = tempCtx.getImageData(0, 0, sampleSize, sampleSize);
+        const pixels = imageData.data;
+        const colorCounts = {};
+
+        // Collect pixel data and count frequencies
+        for (let i = 0; i < pixels.length; i += 4) {
+            const r = pixels[i];
+            const g = pixels[i + 1];
+            const b = pixels[i + 2];
+            // Simple quantization to reduce unique colors for counting
+            const quantizeFactor = 16; // Adjust for more/less precision
+            const qr = Math.floor(r / quantizeFactor) * quantizeFactor;
+            const qg = Math.floor(g / quantizeFactor) * quantizeFactor;
+            const qb = Math.floor(b / quantizeFactor) * quantizeFactor;
+            const colorKey = `${qr},${qg},${qb}`;
+            colorCounts[colorKey] = (colorCounts[colorKey] || 0) + 1;
+        }
+
+        // Sort colors by frequency
+        const sortedColors = Object.entries(colorCounts).sort((a, b) => b[1] - a[1]);
+
+        // Take the top N colors
+        const extractedColors = [];
+        for (let i = 0; i < Math.min(numColors, sortedColors.length); i++) {
+            const [rgbString] = sortedColors[i];
+            const [r, g, b] = rgbString.split(',').map(Number);
+            extractedColors.push({ r, g, b });
+        }
+
+        if (extractedColors.length === 0) {
+            paletteDiv.innerHTML = '<p class="text-center w-full text-gray-500 text-sm col-span-4">Could not extract colors. Try a different image.</p>';
+            return;
+        }
+
+        extractedColors.forEach(color => {
+            const swatch = document.createElement('div');
+            const hex = rgbToHex(color.r, color.g, color.b);
+            swatch.className = 'w-14 h-14 rounded-md bg-gray-200 flex items-center justify-center border border-gray-300'; // Re-use existing swatch styling
+            
+            const innerDiv = document.createElement('div');
+            innerDiv.className = 'w-10 h-10 rounded-full';
+            innerDiv.style.backgroundColor = hex;
+            
+            swatch.appendChild(innerDiv);
+            swatch.title = `Click to copy ${hex}`;
+            swatch.onclick = () => {
+                navigator.clipboard.writeText(hex).then(() => {
+                    // Simple visual feedback for copy
+                    const originalTitle = swatch.title;
+                    swatch.title = 'Copied!';
+                    setTimeout(() => swatch.title = originalTitle, 1000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    alert(`Failed to copy ${hex}. Please copy manually: ${hex}`);
+                });
+            };
+            paletteDiv.appendChild(swatch);
+        });
+    }
+
     // Three.js global variables
     let camera, scene, renderer, dirLight, ground, gui;
     let material, materialIn, uniforms, uniformsIn; // For ShaderBall materials and their custom uniforms
@@ -498,6 +593,14 @@
             scene.add(shaderBall);
 
             render();
+
+            // Extract color palette from the loaded texture
+            // The `map.image` property will be the HTMLImageElement loaded by TextureLoader
+            if (map.image) {
+                extractColorPalette(map.image);
+            } else {
+                map.image.onload = () => extractColorPalette(map.image);
+            }
 
             createGUI(); // Placeholder for GUI creation
 

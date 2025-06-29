@@ -1,0 +1,640 @@
+:root {
+    --header-height: 4rem; /* Define a CSS variable for header height */
+}
+body {
+    font-family: sans-serif;
+    background: #f3f4f6; /* Light background for the body */
+    min-height: 100vh;
+    padding: 0;
+    box-sizing: border-box;
+    color: #1f2937; /* Dark text color for light theme */
+    display: flex;
+    flex-direction: column; /* Stack header and main content vertically */
+}
+.app-header {
+    width: 100%;
+    height: var(--header-height);
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0; /* Prevent header from shrinking */
+    position: relative; /* Needed for absolute positioning of dropdowns */
+}
+.app-header .app-title {
+    font-size: 1.5rem; /* Slightly smaller title for header */
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    flex-grow: 1; /* Allow title to take available space */
+    text-align: center;
+}
+.header-button {
+    padding: 0.5rem 0.8rem;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    font-weight: 500;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.header-button:hover {
+    background-color: #e5e7eb;
+    color: #1f2937;
+}
+
+.main-content-wrapper {
+    flex-grow: 1; /* Main content takes remaining vertical space */
+    padding: 1rem; /* Add some padding around the main container */
+    overflow: hidden; /* Prevent body scrolling by keeping content within bounds */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Use flexbox to enable centering */
+    justify-content: center; /* Center the .container horizontally */
+}
+.container {
+    width: 100%;
+    /* max-width: 1800px; Set a max-width for very large screens */
+    height: 100%; /* Fill the height of the main-content-wrapper */
+    background-color: #ffffff;
+    border-radius: 0.8rem; /* Restore rounded corners for the card look */
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); /* Restore the shadow */
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: all 0.3s ease-in-out;
+}
+
+/* Desktop layout: Switch to a row-based layout for wider screens */
+@media (min-width: 1024px) {
+    .container {
+        flex-direction: row;
+        gap: 1rem;
+    }
+    .left-panel {
+        flex: 0 0 350px; /* More compact fixed width for left panel */
+        padding: 1rem; /* Adjusted padding */
+        background-color: #f9fafb; /* Slightly off-white for side panels */
+        border-radius: 0.6rem; /* Subtle rounding */
+        box-shadow: none; /* No inner shadow, rely on borders */
+        height: 100%; /* Make left panel fill height of container */
+        overflow-y: auto; /* Allow left panel to scroll if content overflows */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .main-content-area {
+        flex: 1; /* Main content area grows to fill remaining horizontal space */
+        display: flex; /* Corrected: Must be flex to contain tabs */
+        flex-direction: column;
+        height: 100%; /* Make main content area fill height of container */
+        min-width: 0; /* Prevent flex item from overflowing when content is too wide */
+    }
+    /* On desktop, make the PBR tab a row to create the 3-column layout */
+    #texture-pbr-tab.active {
+        flex-direction: row; /* Arrange children (canvas, controls) in a row */
+        height: 100%; /* Make the tab fill the height of its parent (main-content-area) */
+        gap: 1rem; /* Add space between the middle and right columns */
+    }
+}
+    /* End of desktop layout styles */
+h1 {
+    font-size: 1.8rem; /* Smaller h1 */
+    color: #111827;
+    font-weight: 700;
+}
+h2 {
+    font-size: 1.2rem; /* Smaller h2 */
+    color: #111827;
+    font-weight: 600;
+}
+h3 {
+    font-size: 1rem; /* Smaller h3 */
+    color: #111827;
+    font-weight: 500;
+}
+p, span, label {
+    color: #4b5563; /* Mid-grey for general text */
+    font-size: 0.85rem; /* Smaller base font size */
+}
+
+.canvas-container {
+    /* General styling for containers holding a canvas preview */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem; /* Very small gap */
+    background-color: #f9fafb; /* Light background for canvas containers */
+    border-radius: 0.7rem;
+    padding: 0.8rem; /* Reduced padding */
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); /* Subtle light shadow */
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+    cursor: pointer; /* Indicate that map previews are clickable */
+    border: 1px solid #e5e7eb; /* Subtle border */
+}
+.canvas-container:hover {
+    transform: translateY(-1px); /* Very subtle lift */
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+.canvas-wrapper {
+    /* A wrapper directly around the canvas element for consistent background and border */
+    background-color: #e5e7eb; /* Light grey for canvas wrapper */
+    border: 1px solid #d1d5db; /* Lighter border */
+    border-radius: 0.5rem;
+    padding: 0.3rem; /* Very reduced padding */
+    box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05); /* Subtle inner shadow */
+    overflow: hidden;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+canvas {
+    border-radius: 0.3rem; /* Very subtle rounding */
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+input[type="file"] {
+    display: none;
+}
+.custom-file-upload {
+    /* Styling for the custom "Upload Image" button */
+    display: inline-block;
+    padding: 0.6rem 1.2rem; /* Much more compact padding */
+    cursor: pointer;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 0.5rem; /* Smaller radius */
+    transition: all 0.1s ease, transform 0.05s ease; /* Faster transitions */
+    font-weight: 500;
+    letter-spacing: 0.01em; /* Tighter letter spacing */
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* Lighter shadow */
+    text-transform: uppercase;
+    text-align: center;
+    font-size: 0.8rem; /* Smaller font size */
+}
+.custom-file-upload:hover {
+    background-color: #2563eb;
+    transform: translateY(-0.5px); /* Very subtle lift */
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+.custom-file-upload:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Loading Spinner */
+.loader {
+    border: 2px solid #e5e7eb; /* Thinner, lighter spinner border */
+    border-top: 2px solid #4f46e5; /* Accent color */
+    width: 24px; /* Smaller */
+    height: 24px;
+    animation: spin 1s linear infinite;
+    display: none;
+    margin-top: 0.5rem; /* Reduced margin */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 3D Canvas Specific Styling */
+#threeJsCanvas {
+    background-color: #f3f4f6;
+    cursor: grab;
+    /* Added to make the canvas fill its wrapper */
+    width: 100%;
+    height: 100%;
+    display: block; /* Ensures proper block-level sizing */
+}
+#threeJsCanvas:active {
+    cursor: grabbing;
+}
+
+/* Responsive grid for 2D maps */
+.map-grid {
+    /* A grid layout for the small 2D map previews in the left panel */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); /* Even more compact: 90px min */
+    gap: 0.4rem; /* Reduced gap */
+    margin-top: 0.8rem; /* Space from controls above */
+    padding-top: 0.8rem;
+    border-top: 1px solid #e5e7eb; /* Lighter border */
+}
+.map-grid .canvas-container {
+    padding: 0.4rem; /* Smaller padding for maps */
+    gap: 0.2rem; /* Even smaller gap inside map container */
+    border-color: #d1d5db; /* Lighter border for map containers */
+}
+.map-grid .canvas-wrapper {
+    width: 90px; /* Fixed small size for previews */
+    height: 90px;
+    padding: 0.2rem; /* Minimal padding */
+    border-color: #d1d5db; /* Lighter border */
+}
+.map-grid canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.map-grid h2 {
+    font-size: 0.8rem; /* Smaller font for map titles */
+    font-weight: 500;
+    color: #374151; /* Darker text */
+}
+.map-grid .flex.items-center.gap-2.mt-2 {
+    margin-top: 0.1rem; /* Further reduce margin for checkboxes */
+}
+.map-grid label.text-sm {
+    font-size: 0.7rem; /* Smaller font for checkbox labels */
+    color: #6b7280; /* Subtler text */
+}
+.map-grid .canvas-container.isolated-view {
+    border-color: #7c3aed;
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.5);
+}
+
+/* Controls Styling (Export and Texture Levels) */
+.controls-group {
+    /* A container for a group of related controls (e.g., sliders, buttons) */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem; /* Smaller gap */
+    width: 100%;
+    padding-top: 0.8rem; /* Reduced padding */
+    border-top: 1px solid #e5e7eb; /* Lighter border */
+    margin-top: 0.8rem;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.controls-group:first-child {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+}
+.controls-group.highlighted-controls-group {
+    border: 2px solid #6d28d9; /* Purple border */
+    background-color: #f0ebf8; /* Lighter purple tint background */
+    box-shadow: 0 0 10px rgba(109, 40, 217, 0.3);
+}
+.controls-group select, .controls-group input[type="range"] {
+    /* General styling for select dropdowns and range sliders */
+    width: 100%;
+    padding: 0.4rem 0.6rem; /* Much more compact padding */
+    border-radius: 0.4rem; /* Smaller radius */
+    border: 1px solid #d1d5db; /* Lighter border */
+    background-color: #f9fafb; /* Light input background */
+    font-size: 0.8rem; /* Smaller font */
+    color: #111827; /* Dark text */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E"); /* Darker arrow */
+    background-repeat: no-repeat;
+    background-position: right 0.4rem center; /* Adjusted position */
+    background-size: 1em; /* Smaller arrow */
+    cursor: pointer;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
+}
+.controls-group select:focus, .controls-group input[type="range"]:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.4); /* Thinner focus glow */
+}
+/* Specific slider styling */
+.slider-group {
+    /* A container for a label and its associated range slider */
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem; /* Very small gap */
+}
+.slider-group label {
+    font-size: 0.75rem; /* Smaller font for slider labels */
+    font-weight: 400;
+    color: #6b7280; /* Subtler grey for slider labels */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.reset-slider-button {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.2rem;
+    line-height: 1;
+    transition: color 0.1s ease, transform 0.1s ease;
+}
+.reset-slider-button:hover {
+    color: #1f2937;
+    transform: rotate(90deg);
+}
+.slider-group input[type="range"] {
+    height: 3px; /* Even thinner track */
+    background: #e5e7eb; /* Lighter track */
+    border-radius: 1.5px;
+}
+.slider-group input[type="range"]::-webkit-slider-thumb {
+    width: 12px; /* Smaller thumb */
+    height: 12px;
+    background: #4f46e5;
+    box-shadow: 0 1px 2px rgba(79, 70, 229, 0.4);
+}
+.slider-group input[type="range"]::-webkit-slider-thumb:hover {
+    background: #4338ca;
+    transform: scale(1.02); /* Very subtle hover effect */
+}
+.slider-group input[type="range"]::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: #4f46e5;
+    box-shadow: 0 1px 2px rgba(79, 70, 229, 0.4);
+}
+
+/* Tab Navigation (for inside dropdown) */
+.tab-buttons {
+    display: flex; /* Changed to flex for vertical list */
+    flex-direction: column; /* Stack buttons vertically */
+    gap: 0.4rem; /* Smaller gap for list items */
+    width: 100%;
+}
+.tab-button {
+    padding: 0.6rem 0.8rem; /* More compact padding */
+    border-radius: 0.4rem; /* Smaller radius */
+    font-weight: 500;
+    font-size: 0.85rem; /* Slightly smaller font */
+    cursor: pointer;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    transition: all 0.1s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    text-align: left; /* Align text to left for list-like feel */
+    width: 100%; /* Ensure buttons fill dropdown width */
+}
+.tab-button:hover {
+    background-color: #e5e7eb;
+    color: #1f2937;
+    transform: none; /* No lift on hover for dropdown items */
+}
+.tab-button.active {
+    background: linear-gradient(45deg, #4f46e5, #7c3aed);
+    color: white;
+    box-shadow: 0 2px 4px -1px rgba(79, 70, 229, 0.1), 0 1px 2px -1px rgba(79, 70, 229, 0.05); /* Lighter shadow for dropdown */
+    transform: none; /* No lift on hover for dropdown items */
+}
+.tab-content {
+    display: none;
+    width: 100%;
+}
+.tab-content.active {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Custom layout for tabs that need a full-height canvas area */
+#color-extractor-tab.active,
+#animation-combiner-tab.active,
+#image-to-mesh-tab.active
+{
+    height: 100%; /* Make the tab fill the vertical space */
+}
+#color-extractor-tab > .canvas-wrapper:first-child {
+    flex-grow: 1; /* Allow the top canvas container to grow and fill space */
+    min-height: 0; /* Prevent overflow issues in flex children */
+}
+#color-extractor-tab > .canvas-container:last-child {
+    flex-shrink: 0; /* Prevent the palette container from shrinking */
+}
+/* Make the wrapper for the preview canvas grow to fill the available space */
+#color-extractor-tab .canvas-wrapper {
+    flex-grow: 1;
+    min-height: 0; /* Important for flex-grow in a column */
+}
+
+/* Color Palette Extractor Specific Styling */
+#colorExtractorCanvas, #stylizeCanvas, #pixelateCanvas { /* Unified styling */
+    border: 1px solid #e5e7eb;
+    background-color: #f3f4f6;
+    border-radius: 0.7rem;
+    /* Do not use flex-grow on the canvas itself. Instead, make it fill its parent. */
+    width: 100%;
+    height: 100%;
+}
+.color-palette {
+    /* Container for the extracted color swatches */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem; /* Reduced gap */
+    justify-content: center;
+    padding: 0.8rem; /* Reduced padding */
+    background-color: #f9fafb; /* Consistent with canvas-container */
+    border-radius: 0.6rem;
+    border: 1px solid #e5e7eb; /* Consistent with canvas-container */
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); /* Consistent with canvas-container */
+}
+.color-swatch {
+    /* Individual color swatch styling */
+    width: 60px; /* Compact swatches */
+    height: 60px;
+    border-radius: 0.4rem; /* Slightly smaller radius */
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.1); /* Slightly more visible dark border */
+    transition: transform 0.1s ease, border-color 0.1s ease;
+}
+.color-swatch:hover {
+    transform: scale(1.05); /* Slightly more pronounced hover */
+    border-color: #4f46e5;
+}
+.palette-style-button {
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.4rem;
+    font-weight: 500;
+    font-size: 0.75rem;
+    cursor: pointer;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #d1d5db;
+    transition: all 0.1s ease;
+}
+.palette
+
+/* New container for controls on the right side */
+.right-side-controls-container {
+    /* This container holds all the sliders and controls within the PBR tab's right column */
+    display: flex;
+    /* flex-direction: column; */
+    gap: 1rem; /* Standard gap for sections */
+    width: 100%;
+}
+@media (min-width: 1024px) { /* Changed from 768px to 1024px for desktop layout */
+    /* On desktop screens, make the controls within the right panel responsive */
+    .right-side-controls-container {
+        flex: 0 0 420px; /* Fixed width for right panel, but allows content to wrap */
+        height: 100%;
+        overflow-y: auto;
+        background-color: #f9fafb;
+        border-radius: 0.6rem;
+        padding: 1rem;
+        flex-wrap: wrap; /* Allow content to wrap */
+        justify-content: space-around; /* Distribute items with space around them */
+        align-content: flex-start; /* Align content to the start of the cross axis */
+    }
+    .right-side-controls-container > .controls-group {
+        flex: 1 1 220px; /* Allows groups to wrap and grow, with a smaller minimum width */
+        min-width: 220px; /* Reduced min-width to allow more shrinking */
+        padding-top: 1rem;
+        margin-top: 0;
+        border-top: none;
+    }
+    /* Add top border back for groups that start on a new row */
+    .right-side-controls-container > .controls-group:nth-child(3n+1) {
+        border-top: none;
+        padding-top: 0;
+    }
+    .right-side-controls-container > .controls-group:nth-child(n+4) {
+        border-top: 1px solid #e5e7eb;
+        padding-top: 0.8rem;
+    }
+}
+    /* Minor responsive adjustments for smaller screen sizes */
+    /* Adjust for smaller mobile views within panels */
+.left-panel .flex.flex-col.items-center.gap-4 {
+    gap: 0.6rem; /* Smaller gap for upload section */
+}
+.left-panel .flex.items-center.gap-2 {
+    margin-top: 0.6rem; /* Smaller top margin for checkbox */
+}
+.main-content-area .text-5xl {
+    font-size: 2.2rem; /* Even smaller main title on smaller screens */
+    line-height: 1.1;
+    font-weight: 800;
+    
+}
+.main-content-area .text-lg {
+    font-size: 0.9rem; /* Smaller intro text on smaller screens */
+    line-height: 1.3;
+    color: #6b7280;
+}
+.main-content-area p {
+        font-size: 0.9rem; /* Ensure consistent small paragraph text */
+}
+.drop-zone {
+    display: block; /* To make the label a block element */
+    padding: 1rem;
+    border: 2px dashed #d1d5db;
+    border-radius: 0.6rem;
+    text-align: center;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    background-color: #f9fafb;
+    cursor: pointer;
+}
+.drop-zone:hover {
+    border-color: #6d28d9;
+}
+.drop-zone.drag-over {
+    background-color: #f3f4f6;
+    border-color: #4f46e5;
+    border-style: solid;
+}
+#mapTooltip {
+    position: fixed;
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #1f2937;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    pointer-events: none; /* So it doesn't interfere with mouse events on other elements */
+    z-index: 1001; /* Make sure it's on top of everything */
+    max-width: 250px;
+    border: 1px solid #e5e7eb;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: opacity 0.1s ease-in-out;
+}
+.reset-camera-button {
+    position: absolute;
+    top: 10px; /* Moved to top-left */
+    left: 10px; /* Moved to top-left */
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid #d1d5db;
+    color: #374151;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+.reset-camera-button:hover {
+    background-color: rgba(79, 70, 229, 0.9);
+    border-color: #4f46e5;
+    color: white;
+    transform: rotate(90deg);
+}
+
+/* Progress Bar Styles */
+.income-progress-container {
+    width: 100%;
+    background-color: #e5e7eb; /* Light gray background for the empty part of the bar */
+    border-radius: 0.5rem;
+    height: 10px; /* Height of the progress bar */
+    overflow: hidden; /* Ensures the inner bar stays within rounded corners */
+    margin-top: 0.5rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+/* Styles for the progress bar when it's in the header */
+.app-header .income-progress-container {
+    width: 150px; /* Fixed width for compactness in header */
+    height: 8px; /* Slightly smaller height */
+    margin: 0; /* Remove top margin */
+}
+.app-header .income-text {
+    font-size: 0.7rem; /* Even smaller font for header */
+    margin: 0;
+    white-space: nowrap; /* Prevent wrapping */
+}
+.app-header .percentage-text {
+    font-size: 0.7rem; /* Even smaller font for header */
+    margin: 0;
+    white-space: nowrap; /* Prevent wrapping */
+}
+
+.income-progress-bar {
+    height: 100%;
+    width: 0%; /* Initial width */
+    background: linear-gradient(to right, #6d28d9, #9c36b6); /* Purple gradient fill */
+    border-radius: 0.5rem;
+    transition: width 0.5s ease-in-out; /* Smooth transition for width changes */
+}
+.income-text, .percentage-text {
+    font-size: 0.75rem; /* Smaller font for progress text */
+    color: #4b5563; /* Consistent text color */
+    font-weight: 500;
+}
+.income-text {
+    margin-top: 0.5rem;
+}
+.percentage-text {
+    text-align: right; /* Align percentage to the right */
+    margin-top: 0.2rem;
+}
+
+/* Removed Modal Styles */
+/* .modal, .modal.active, .modal-content, .modal-close-btn are no longer needed */
