@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Advanced Procedural Wear</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; font-family: 'Inter', sans-serif; }
+        #container { display: flex; height: 100vh; }
+        #controls {
+            width: 300px;
+            padding: 20px;
+            background: #252525;
+            color: #eee;
+            overflow-y: auto;
+            border-right: 1px solid #333;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+        }
+        #preview { flex: 1; background: #1a1a1a; display: flex; justify-content: center; align-items: center; cursor: grab; }
+        #preview:active { cursor: grabbing; }
+        canvas { display: block; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        .control-group { margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 12px; }
+        .layer-group { background: #333; border-radius: 8px; padding: 10px; margin-bottom: 10px; border: 1px solid #444; }
+        .layer-group.selected-layer-ui {
+            border: 2px solid #00aaff; /* Highlight color for selected layer in UI */
+            box-shadow: 0 0 10px rgba(0,170,255,0.5);
+        }
+        label { display: block; margin: 8px 0 4px; font-size: 13px; color: #ccc; }
+        input[type="range"] {
+            width: 100%; margin: 5px 0;
+            -webkit-appearance: none;
+            height: 8px;
+            background: #444;
+            border-radius: 5px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,123,255,0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,123,255,0.5);
+        }
+        .value-display { color: #aaa; font-size: 12px; float: right; }
+        button, .add-btn {
+            padding: 10px 15px; margin: 8px 0; width: 100%;
+            background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
+            color: white; border: none;
+            border-radius: 5px;
+            cursor: pointer; transition: all 0.2s ease-in-out;
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.4), -3px -3px 6px rgba(60,60,60,0.2);
+            font-weight: bold;
+        }
+        button:hover, .add-btn:hover {
+            background: linear-gradient(145deg, #4a4a4a, #3a3a4a);
+            box-shadow: 1px 1px 2px rgba(0,0,0,0.4), -1px -1px 2px rgba(60,60,60,0.2);
+            transform: translateY(-1px);
+        }
+        button:active, .add-btn:active {
+            transform: translateY(1px);
+            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.4), inset -1px -1px 2px rgba(60,60,60,0.2);
+        }
+        .add-btn { background: #007bff; font-size: 18px; padding: 5px; }
+        .remove-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; float: right; }
+        .texture-upload { margin: 10px 0; }
+        input[type="file"] {
+            width: 100%; padding: 8px;
+            border: 1px solid #444; border-radius: 5px;
+            background-color: #333; color: #eee; cursor: pointer;
+        }
+        input[type="file"]::-webkit-file-upload-button {
+            background: #007bff; color: white; border: none;
+            padding: 8px 12px; border-radius: 4px; cursor: pointer;
+            transition: background 0.2s;
+        }
+        input[type="file"]::-webkit-file-upload-button:hover { background: #0056b3; }
+        h2 { color: #007bff; text-align: center; margin-bottom: 25px; font-size: 24px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        h3 { margin: 20px 0 10px; color: #ddd; font-size: 16px; border-bottom: 1px dashed #444; padding-bottom: 5px; }
+        .section { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2), inset -2px -2px 5px rgba(60,60,60,0.1); }
+        .message-box {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333; color: white;
+            padding: 20px; border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            z-index: 1000; text-align: center; display: none;
+        }
+        .message-box button { margin-top: 15px; padding: 8px 20px; background-color: #007bff; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .message-box button:hover { background-color: #0056b3; }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <h2>Procedural Wear Generator</h2>
+
+            <div class="section">
+                <h3>Base Material</h3>
+                <div class="texture-upload">
+                    <label>Base Color:</label>
+                    <input type="file" id="baseTexture" accept="image/*">
+                </div>
+                 <div class="control-group">
+                    <label>Roughness <span class="value-display" id="roughnessValue">0.5</span></label>
+                    <input type="range" min="0" max="1" step="0.01" value="0.5" id="roughnessSlider">
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Wear Layers</h3>
+                <div id="wearLayersContainer"></div>
+                <button class="add-btn" id="addWearBtn">+</button>
+            </div>
+
+            <div class="section">
+                <h3>Overlay Layers (Stickers/Paint)</h3>
+                <div id="overlayLayersContainer"></div>
+                <button class="add-btn" id="addOverlayBtn">+</button>
+            </div>
+
+            <button id="resetBtn">Reset All</button>
+        </div>
+        <div id="preview"></div>
+    </div>
+
+    <div id="messageBox" class="message-box">
+        <p id="messageText"></p>
+        <button onclick="document.getElementById('messageBox').style.display='none'">OK</button>
+    </div>
+
+    <script>
+        // --- Custom message box function ---
+        function showMessage(message) {
+            document.getElementById('messageText').textContent = message;
+            document.getElementById('messageBox').style.display = 'block';
+        }
+
+        // --- Constants and Globals ---
+        const MAX_LAYERS = 5; // Max layers of each type (wear/overlay)
+        let wearLayers = [];
+        let overlayLayers = [];
+        let baseTexture;
+        let isBaseTextureLoaded = false;
+        const loader = new THREE.TextureLoader();
+
+        // --- Three.js Setup ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, (window.innerWidth - 300) / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth - 300, window.innerHeight);
+        document.getElementById('preview').appendChild(renderer.domElement);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+        const ambientLight = new THREE.AmbientLight(0x808080);
+        scene.add(ambientLight);
+
+        const geometry = new THREE.PlaneGeometry(3, 3);
+        // Ensure tangents are computed for proper normal mapping
+        geometry.computeTangents(); 
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.1 }));
+        scene.add(mesh);
+        camera.position.z = 2.5;
+
+        // --- Mouse Controls for Camera Rotation ---
+        let isDraggingCamera = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        const previewEl = document.getElementById('preview');
+
+        // --- Mouse Controls for Overlay Dragging ---
+        let isOverlayDragging = false;
+        let draggedOverlayId = null;
+        let dragOffsetU = 0; // Offset from overlay center to click point in UV space
+        let dragOffsetV = 0; // Offset from overlay center to click point in UV space
+
+        // Global variable to keep track of the currently selected overlay's ID for UI highlighting
+        let selectedOverlayId = null;
+
+        // Function to update UI selection highlight
+        function updateLayerSelectionUI() {
+            document.querySelectorAll('.layer-group').forEach(div => {
+                div.classList.remove('selected-layer-ui'); // Remove from all
+            });
+            if (selectedOverlayId) {
+                const selectedDiv = document.getElementById(selectedOverlayId);
+                if (selectedDiv) {
+                    selectedDiv.classList.add('selected-layer-ui');
+                }
+            }
+        }
+
+        previewEl.addEventListener('mousedown', e => {
+            // Convert mouse coordinates to UV space (0-1, with Y inverted for WebGL)
+            const canvasRect = renderer.domElement.getBoundingClientRect();
+            const uvX = (e.clientX - canvasRect.left) / canvasRect.width;
+            const uvY = 1.0 - ((e.clientY - canvasRect.top) / canvasRect.height); // Invert Y for WebGL UV
+
+            let overlayFound = false;
+            // Iterate through overlays in reverse to pick the topmost one
+            for (let i = overlayLayers.length - 1; i >= 0; i--) {
+                const overlay = overlayLayers[i];
+                if (!overlay.texture) continue; // Skip if no texture loaded
+
+                // Calculate the bounding box of the overlay in UV space
+                // halfScale is half the size of the overlay relative to the canvas
+                const halfScaleX = overlay.scale / 2.0;
+                const halfScaleY = overlay.scale / 2.0;
+                // min/max UV coordinates of the overlay
+                const minX = overlay.posX - halfScaleX;
+                const maxX = overlay.posX + halfScaleX;
+                const minY = overlay.posY - halfScaleY;
+                const maxY = overlay.posY + halfScaleY;
+
+                // Check if mouse click is within the overlay's bounding box
+                if (uvX >= minX && uvX <= maxX && uvY >= minY && uvY <= maxY) {
+                    isOverlayDragging = true;
+                    draggedOverlayId = overlay.id;
+                    // Store the offset from the overlay's center to the click point
+                    dragOffsetU = uvX - overlay.posX;
+                    dragOffsetV = uvY - overlay.posY;
+                    
+                    isDraggingCamera = false; // Disable camera dragging
+                    selectedOverlayId = overlay.id; // Set selected overlay
+                    updateLayerSelectionUI(); // Update UI highlight
+                    overlayFound = true;
+                    break; // Only drag one overlay
+                }
+            }
+
+            if (!overlayFound) {
+                // If no overlay was clicked, assume camera dragging
+                isDraggingCamera = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+                selectedOverlayId = null; // Deselect any overlay
+                updateLayerSelectionUI(); // Update UI highlight
+            }
+        });
+
+        previewEl.addEventListener('mouseup', () => {
+            isDraggingCamera = false;
+            isOverlayDragging = false;
+            draggedOverlayId = null;
+            // selectedOverlayId is kept until another click occurs, to maintain UI highlight
+        });
+
+        previewEl.addEventListener('mousemove', e => {
+            if (isOverlayDragging) {
+                const canvasRect = renderer.domElement.getBoundingClientRect();
+                const currentMouseUVX = (e.clientX - canvasRect.left) / canvasRect.width;
+                const currentMouseUVY = 1.0 - ((e.clientY - canvasRect.top) / canvasRect.height); // Invert Y for WebGL UV
+
+                const draggedOverlay = overlayLayers.find(l => l.id === draggedOverlayId);
+                if (draggedOverlay) {
+                    // Calculate new position keeping the click point under the mouse
+                    draggedOverlay.posX = currentMouseUVX - dragOffsetU;
+                    draggedOverlay.posY = currentMouseUVY - dragOffsetV;
+
+                    // Apply clamping (optional, but good for keeping it somewhat in view)
+                    draggedOverlay.posX = Math.max(-0.5, Math.min(1.5, draggedOverlay.posX));
+                    draggedOverlay.posY = Math.max(-0.5, Math.min(1.5, draggedOverlay.posY));
+
+                    updateShader(); // Re-render with new position
+                }
+            } else if (isDraggingCamera) {
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                mesh.rotation.y += deltaX * 0.01;
+                mesh.rotation.x += deltaY * 0.01;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        previewEl.addEventListener('wheel', e => {
+            e.preventDefault();
+            camera.position.z += e.deltaY * 0.005;
+            camera.position.z = Math.max(1, Math.min(camera.position.z, 10));
+        });
+
+        // --- Normal Map Generation Function ---
+        function generateNormalMapFromGrayscale(image, strength = 1.0) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = image.width;
+            canvas.height = image.height;
+            ctx.drawImage(image, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            const newImageData = ctx.createImageData(canvas.width, canvas.height);
+            const newData = newImageData.data;
+
+            const width = canvas.width;
+            const height = canvas.height;
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+
+                    // Get grayscale values of neighbors
+                    const getLuminance = (px, py) => {
+                        px = Math.max(0, Math.min(width - 1, px));
+                        py = Math.max(0, Math.min(height - 1, py));
+                        const idx = (py * width + px) * 4;
+                        return data[idx]; // Using red channel as luminance
+                    };
+
+                    // Sobel operator (simplified for 4 neighbors)
+                    const tl = getLuminance(x - 1, y - 1);
+                    const tc = getLuminance(x, y - 1);
+                    const tr = getLuminance(x + 1, y - 1);
+                    const ml = getLuminance(x - 1, y);
+                    const mr = getLuminance(x + 1, y);
+                    const bl = getLuminance(x - 1, y + 1);
+                    const bc = getLuminance(x, y + 1);
+                    const br = getLuminance(x + 1, y + 1);
+
+                    const dx = (tr + 2 * mr + br) - (tl + 2 * ml + bl);
+                    const dy = (bl + 2 * bc + br) - (tl + 2 * tc + tr);
+
+                    // Normal vector components
+                    // Z component is controlled by strength. Higher strength means flatter normal (more pronounced bump).
+                    const nx = dx;
+                    const ny = -dy; // Invert Y for consistency with WebGL UVs (Y-axis points up in normal maps)
+                    const nz = 255.0 / strength;
+
+                    // Normalize the vector
+                    const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+                    const normalizedNx = nx / len;
+                    const normalizedNy = ny / len;
+                    const normalizedNz = nz / len;
+
+                    // Map normalized vector components from [-1, 1] to [0, 255] for RGB
+                    newData[i] = Math.round((normalizedNx * 0.5 + 0.5) * 255);   // R
+                    newData[i + 1] = Math.round((normalizedNy * 0.5 + 0.5) * 255); // G
+                    newData[i + 2] = Math.round((normalizedNz * 0.5 + 0.5) * 255); // B (blue usually points "out")
+                    newData[i + 3] = 255; // Alpha
+                }
+            }
+
+            ctx.putImageData(newImageData, 0, 0);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // --- Shader Material ---
+        function createShaderMaterial() {
+            const uniforms = {
+                baseMap: { value: baseTexture || new THREE.Texture() },
+                isBaseMapLoaded: { value: isBaseTextureLoaded },
+                materialRoughness: { value: parseFloat(document.getElementById('roughnessSlider').value) },
+                ambientLightColor: { value: ambientLight.color },
+                lightDirection: { value: directionalLight.position.normalize() }, // Pass normalized light direction
+
+                // Wear Uniforms
+                wearMaps: { value: Array(MAX_LAYERS).fill(new THREE.Texture()) },
+                wearNormalMaps: { value: Array(MAX_LAYERS).fill(new THREE.Texture()) },
+                wearParams: { value: Array(MAX_LAYERS).fill(new THREE.Vector3()) },
+                wearNoiseParams: { value: Array(MAX_LAYERS).fill(new THREE.Vector3()) },
+                wearScales: { value: Array(MAX_LAYERS).fill(1.0) },
+                wearNormalStrengths: { value: Array(MAX_LAYERS).fill(1.0) },
+                wearInvertEdges: { value: Array(MAX_LAYERS).fill(0) }, // New: Invert edge flag
+                wearCount: { value: 0 },
+
+                // Overlay Uniforms
+                overlayMaps: { value: Array(MAX_LAYERS).fill(new THREE.Texture()) },
+                overlayParams: { value: Array(MAX_LAYERS).fill(new THREE.Vector2()) },
+                overlayPositions: { value: Array(MAX_LAYERS).fill(new THREE.Vector2()) },
+                overlayCount: { value: 0 },
+            };
+
+            return new THREE.ShaderMaterial({
+                uniforms: uniforms,
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vNormal; // Pass normal to fragment shader for lighting
+                    void main() {
+                        vUv = uv;
+                        vNormal = normalMatrix * normal; // Transform normal to view space
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    #define MAX_LAYERS 5
+
+                    uniform sampler2D baseMap;
+                    uniform bool isBaseMapLoaded;
+                    uniform float materialRoughness;
+                    uniform vec3 ambientLightColor;
+                    uniform vec3 lightDirection; // Directional light direction
+
+                    // Wear Uniforms
+                    uniform sampler2D wearMaps[MAX_LAYERS];
+                    uniform sampler2D wearNormalMaps[MAX_LAYERS];
+                    uniform vec3 wearParams[MAX_LAYERS];
+                    uniform vec3 wearNoiseParams[MAX_LAYERS];
+                    uniform float wearScales[MAX_LAYERS];
+                    uniform float wearNormalStrengths[MAX_LAYERS];
+                    uniform int wearInvertEdges[MAX_LAYERS]; // New: Invert edge flag
+                    uniform int wearCount;
+
+                    // Overlay Uniforms
+                    uniform sampler2D overlayMaps[MAX_LAYERS];
+                    uniform vec2 overlayParams[MAX_LAYERS];
+                    uniform vec2 overlayPositions[MAX_LAYERS];
+                    uniform int overlayCount;
+
+                    varying vec2 vUv;
+                    varying vec3 vNormal; // Incoming normal from vertex shader
+
+                    vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                    vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                    vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+                    vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+                    float snoise(vec3 v) {
+                        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+                        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+                        vec3 i = floor(v + dot(v, C.yyy));
+                        vec3 x0 = v - i + dot(i, C.xxx);
+                        vec3 g = step(x0.yzx, x0.xyz);
+                        vec3 l = 1.0 - g;
+                        vec3 i1 = min(g.xyz, l.zxy);
+                        vec3 i2 = max(g.xyz, l.zxy);
+                        vec3 x1 = x0 - i1 + C.xxx;
+                        vec3 x2 = x0 - i2 + C.yyy;
+                        vec3 x3 = x0 - D.yyy;
+                        i = mod289(i);
+                        vec4 p = permute(permute(permute( i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+                        float n_ = 0.142857142857;
+                        vec3 ns = n_ * D.wyz - D.xzx;
+                        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+                        vec4 x_ = floor(j * ns.z);
+                        vec4 y_ = floor(j - 7.0 * x_);
+                        vec4 x = x_ *ns.x + ns.yyyy;
+                        vec4 y = y_ *ns.x + ns.yyyy;
+                        vec4 h = 1.0 - abs(x) - abs(y);
+                        vec4 b0 = vec4(x.xy, y.xy);
+                        vec4 b1 = vec4(x.zw, y.zw);
+                        vec4 s0 = floor(b0)*2.0 + 1.0;
+                        vec4 s1 = floor(b1)*2.0 + 1.0;
+                        vec4 sh = -step(h, vec4(0.0));
+                        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+                        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+                        vec3 p0 = vec3(a0.xy,h.x);
+                        vec3 p1 = vec3(a0.zw,h.y);
+                        vec3 p2 = vec3(a1.xy,h.z);
+                        vec3 p3 = vec3(a1.zw,h.w);
+                        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+                        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+                        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                        m = m*m;
+                        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+                    }
+                    
+                    // Fractal Brownian Motion (FBM) for more complex noise - adapted from wear.html
+                    float fbm(vec3 p, int octaves) {
+                        float total = 0.0;
+                        float frequency = 1.0;
+                        float amplitude = 1.0;
+                        float maxValue = 0.0; // Used for normalizing result to 0.0-1.0
+
+                        for(int i=0; i<octaves; i++) {
+                            if (i >= octaves) break;
+                            total += snoise(p * frequency) * amplitude;
+                            maxValue += amplitude;
+                            amplitude *= 0.5; // Standard FBM persistence from wear.html
+                            frequency *= 2.0;
+                        }
+                        return total/maxValue; // Keep normalization
+                    }
+
+                    // Simple edge detection based on luminance difference
+                    float detectEdges(vec2 uv, sampler2D tex) {
+                        float lumCenter = texture2D(tex, uv).r;
+                        float lumRight = texture2D(tex, uv + vec2(0.001, 0)).r;
+                        float lumUp = texture2D(tex, uv + vec2(0, 0.001)).r;
+                        float edgeX = lumRight - lumCenter;
+                        float edgeY = lumUp - lumCenter;
+                        return sqrt(edgeX * edgeX + edgeY * edgeY);
+                    }
+
+                    // Calculates the procedural mask based on edges and noise
+                    float calculateProceduralMask(vec2 uv, sampler2D baseMapTex, bool isBaseTexLoaded, vec3 params, vec3 noiseParams, bool invertEdge) {
+                        float amount = params.x;
+                        float edgeThreshold = params.y;
+                        float edgeSharpness = params.z;
+
+                        float noiseScale = noiseParams.x;
+                        int noiseDetail = int(noiseParams.y);
+                        float noiseRoughness = noiseParams.z;
+
+                        vec3 noiseCoord = vec3(uv * noiseScale, 0.0);
+                        float noise = fbm(noiseCoord, noiseDetail) * 0.5 + 0.5; // Remap to 0-1
+
+                        float edge = 0.0;
+                        if (isBaseTexLoaded) {
+                            edge = detectEdges(uv, baseMapTex) * edgeSharpness;
+                        }
+                        edge = clamp(edge, 0.0, 1.0);
+
+                        // Apply inversion to the edge value
+                        if (invertEdge) {
+                            edge = 1.0 - edge;
+                        }
+
+                        float proceduralMask = smoothstep(edgeThreshold - 0.1, edgeThreshold + 0.1, edge) * amount;
+                        proceduralMask = mix(proceduralMask, proceduralMask * noise, noiseRoughness);
+                        proceduralMask = clamp(proceduralMask, 0.0, 1.0);
+                        return proceduralMask;
+                    }
+
+                    // Function to calculate lighting (simple diffuse + ambient)
+                    vec3 calculateLighting(vec3 color, vec3 normal, vec3 lightDir, vec3 ambientColor) {
+                        vec3 N = normalize(normal);
+                        vec3 L = normalize(lightDir);
+                        float diffuse = max(dot(N, L), 0.0);
+                        return color * (ambientColor + diffuse * vec3(1.0)); // Simplified: ambient + diffuse
+                    }
+
+                    // Apply overlay, now taking the overallWearMask and dominantWearColor to affect the overlay itself
+                    vec3 applyOverlay(int index, vec3 currentColor, vec2 pos, vec2 params, float overallWearMask, vec3 dominantWearColor) {
+                        float overlayScale = params.x;
+                        float overlayBlend = params.y;
+                        vec2 adjustedUv = (vUv - 0.5) / overlayScale + 0.5 - (pos - 0.5);
+                        
+                        vec4 overlayTexel = vec4(0.0);
+                        // Use if/else if for sampler array access
+                        if (index == 0) overlayTexel = texture2D(overlayMaps[0], adjustedUv);
+                        else if (index == 1) overlayTexel = texture2D(overlayMaps[1], adjustedUv);
+                        else if (index == 2) overlayTexel = texture2D(overlayMaps[2], adjustedUv);
+                        else if (index == 3) overlayTexel = texture2D(overlayMaps[3], adjustedUv);
+                        else if (index == 4) overlayTexel = texture2D(overlayMaps[4], adjustedUv);
+                        
+                        // Apply wear to the overlay itself: blend overlay color with the dominant wear color
+                        // The wear on the overlay should reflect the wear color from the wear map
+                        vec3 wornOverlayColor = mix(overlayTexel.rgb, dominantWearColor, overallWearMask * overlayTexel.a); // Use overlay alpha for blending
+                        
+                        return mix(currentColor, wornOverlayColor, overlayTexel.a * overlayBlend);
+                    }
+
+                    void main() {
+                        vec4 baseColor = isBaseMapLoaded ? texture2D(baseMap, vUv) : vec4(1.0);
+                        vec3 finalColor = baseColor.rgb;
+                        
+                        float overallWearMask = 0.0; // Initialize combined wear mask for affecting overlays
+                        vec3 dominantWearColor = vec3(0.0); // To hold the color of the most dominant wear
+                        vec3 combinedNormal = normalize(vNormal); // Start with the original normal from vertex shader
+
+                        // --- Apply Wear Layers and accumulate overallWearMask and dominantWearColor ---
+                        for (int i = 0; i < MAX_LAYERS; i++) {
+                            if (i >= wearCount) break;
+                            
+                            // Pass the new invertEdge flag to calculateProceduralMask
+                            bool currentInvertEdge = (wearInvertEdges[i] == 1);
+                            float proceduralWearMask = calculateProceduralMask(vUv, baseMap, isBaseMapLoaded, wearParams[i], wearNoiseParams[i], currentInvertEdge);
+                            
+                            vec4 wearTexel;
+                            // Use if/else if for sampler array access
+                            if (i == 0) wearTexel = texture2D(wearMaps[0], vUv * wearScales[0]);
+                            else if (i == 1) wearTexel = texture2D(wearMaps[1], vUv * wearScales[1]);
+                            else if (i == 2) wearTexel = texture2D(wearMaps[2], vUv * wearScales[2]);
+                            else if (i == 3) wearTexel = texture2D(wearMaps[3], vUv * wearScales[3]);
+                            else if (i == 4) wearTexel = texture2D(wearMaps[4], vUv * wearScales[4]);
+
+                            // Effective wear color is directly from the wear texture, as in original wear.html
+                            vec3 effectiveWearColor = wearTexel.rgb; 
+                            
+                            // Blend diffuse color
+                            finalColor = mix(finalColor, effectiveWearColor, proceduralWearMask);
+
+                            // Apply normal map for this layer
+                            // Use if/else if for sampler array access
+                            if (i == 0) {
+                                if (texture2D(wearNormalMaps[0], vUv * wearScales[0]).a > 0.0) {
+                                    vec3 layerNormal = texture2D(wearNormalMaps[0], vUv * wearScales[0]).rgb * 2.0 - 1.0;
+                                    layerNormal.xy *= wearNormalStrengths[0];
+                                    layerNormal = normalize(layerNormal);
+                                    combinedNormal = mix(combinedNormal, layerNormal, proceduralWearMask);
+                                }
+                            } else if (i == 1) {
+                                if (texture2D(wearNormalMaps[1], vUv * wearScales[1]).a > 0.0) {
+                                    vec3 layerNormal = texture2D(wearNormalMaps[1], vUv * wearScales[1]).rgb * 2.0 - 1.0;
+                                    layerNormal.xy *= wearNormalStrengths[1];
+                                    layerNormal = normalize(layerNormal);
+                                    combinedNormal = mix(combinedNormal, layerNormal, proceduralWearMask);
+                                }
+                            } else if (i == 2) {
+                                if (texture2D(wearNormalMaps[2], vUv * wearScales[2]).a > 0.0) {
+                                    vec3 layerNormal = texture2D(wearNormalMaps[2], vUv * wearScales[2]).rgb * 2.0 - 1.0;
+                                    layerNormal.xy *= wearNormalStrengths[2];
+                                    layerNormal = normalize(layerNormal);
+                                    combinedNormal = mix(combinedNormal, layerNormal, proceduralWearMask);
+                                }
+                            } else if (i == 3) {
+                                if (texture2D(wearNormalMaps[3], vUv * wearScales[3]).a > 0.0) {
+                                    vec3 layerNormal = texture2D(wearNormalMaps[3], vUv * wearScales[3]).rgb * 2.0 - 1.0;
+                                    layerNormal.xy *= wearNormalStrengths[3];
+                                    layerNormal = normalize(layerNormal);
+                                    combinedNormal = mix(combinedNormal, layerNormal, proceduralWearMask);
+                                }
+                            } else if (i == 4) {
+                                if (texture2D(wearNormalMaps[4], vUv * wearScales[4]).a > 0.0) {
+                                    vec3 layerNormal = texture2D(wearNormalMaps[4], vUv * wearScales[4]).rgb * 2.0 - 1.0;
+                                    layerNormal.xy *= wearNormalStrengths[4];
+                                    layerNormal = normalize(layerNormal);
+                                    combinedNormal = mix(combinedNormal, layerNormal, proceduralWearMask);
+                                }
+                            }
+
+                            // Update dominantWearColor if this layer's mask is stronger
+                            if (proceduralWearMask > overallWearMask) {
+                                overallWearMask = proceduralWearMask;
+                                dominantWearColor = effectiveWearColor;
+                            }
+                        }
+
+                        // Apply lighting using the combined normal
+                        finalColor = calculateLighting(finalColor, combinedNormal, lightDirection, ambientLightColor);
+
+                        // --- Apply Overlays (now affected by overallWearMask and dominantWearColor) ---
+                        for (int i = 0; i < MAX_LAYERS; i++) {
+                            if (i >= overlayCount) break;
+                            finalColor = applyOverlay(i, finalColor, overlayPositions[i], overlayParams[i], overallWearMask, dominantWearColor);
+                        }
+
+                        gl_FragColor = vec4(finalColor, baseColor.a);
+                    }
+                `,
+            });
+        }
+
+        // --- Layer Management ---
+        function addLayer(type) {
+            const layers = type === 'wear' ? wearLayers : overlayLayers;
+            if (layers.length >= MAX_LAYERS) {
+                showMessage(`Maximum of ${MAX_LAYERS} ${type} layers reached.`);
+                return;
+            }
+
+            const layerId = `${type}-${Date.now()}`;
+            // Add invertEdge property to wear layer data
+            const layerData = { id: layerId, texture: null, normalMap: null, invertEdge: false }; 
+            
+            const container = document.getElementById(`${type}LayersContainer`);
+            const layerDiv = document.createElement('div');
+            layerDiv.className = 'layer-group';
+            layerDiv.id = layerId;
+
+            let controlsHtml = `
+                <button class="remove-btn" data-id="${layerId}" data-type="${type}">X</button>
+                <div class="texture-upload">
+                    <label>Layer Texture:</label>
+                    <input type="file" class="layer-texture" data-id="${layerId}" data-type="${type}" accept="image/*">
+                </div>
+            `;
+
+            if (type === 'wear') {
+                Object.assign(layerData, {
+                    amount: 1.0, edgeThreshold: 0.1, edgeSharpness: 5.0,
+                    noiseScale: 20.0, noiseDetail: 5, noiseRoughness: 0.5,
+                    wearScale: 1.0,
+                    normalStrength: 1.0,
+                    invertEdge: false // Default to not inverted
+                });
+                // Load a default wear texture for the new layer
+                const defaultWearTextureUrl = 'https://placehold.co/512x512/888888/000000?text=Wear+Layer';
+                
+                const wearImg = new Image();
+                wearImg.crossOrigin = 'Anonymous';
+                wearImg.onload = () => {
+                    layerData.texture = new THREE.Texture(wearImg);
+                    layerData.texture.needsUpdate = true;
+                    layerData.normalMap = generateNormalMapFromGrayscale(wearImg, layerData.normalStrength);
+                    updateShader();
+                };
+                wearImg.onerror = (err) => {
+                    console.error('Error loading image for normal map generation:', err);
+                    showMessage('Failed to load image for normal map generation.');
+                };
+                wearImg.src = defaultWearTextureUrl;
+
+                controlsHtml += `
+                    <div class="control-group">
+                        <label>Amount <span class="value-display">${layerData.amount}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="amount" data-type="wear" min="0" max="1" step="0.01" value="${layerData.amount}">
+                    </div>
+                    <div class="control-group">
+                        <label>Edge Threshold <span class="value-display">${layerData.edgeThreshold}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="edgeThreshold" data-type="wear" min="0" max="1" step="0.01" value="${layerData.edgeThreshold}">
+                    </div>
+                     <div class="control-group">
+                        <label>Edge Sharpness <span class="value-display">${layerData.edgeSharpness}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="edgeSharpness" data-type="wear" min="0.1" max="10" step="0.1" value="${layerData.edgeSharpness}">
+                    </div>
+                     <div class="control-group">
+                        <label>Noise Scale <span class="value-display">${layerData.noiseScale}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="noiseScale" data-type="wear" min="0.1" max="20" step="0.1" value="${layerData.noiseScale}">
+                    </div>
+                     <div class="control-group">
+                        <label>Noise Detail <span class="value-display">${layerData.noiseDetail}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="noiseDetail" data-type="wear" min="1" max="5" step="1" value="${layerData.noiseDetail}">
+                    </div>
+                     <div class="control-group">
+                        <label>Noise Roughness <span class="value-display">${layerData.noiseRoughness}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="noiseRoughness" data-type="wear" min="0" max="1" step="0.01" value="${layerData.noiseRoughness}">
+                    </div>
+                    <div class="control-group">
+                        <label>Wear Scale <span class="value-display">${layerData.wearScale}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="wearScale" data-type="wear" min="0.1" max="3" step="0.1" value="${layerData.wearScale}">
+                    </div>
+                    <div class="control-group">
+                        <label>Normal Strength <span class="value-display">${layerData.normalStrength}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="normalStrength" data-type="wear" min="0" max="5" step="0.1" value="${layerData.normalStrength}">
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" class="layer-checkbox" id="invertEdge-${layerId}" data-id="${layerId}" data-prop="invertEdge" data-type="wear" ${layerData.invertEdge ? 'checked' : ''}>
+                        <label for="invertEdge-${layerId}">Invert Edge Detection</label>
+                    </div>
+                `;
+            } else { // overlay
+                Object.assign(layerData, { posX: 0.5, posY: 0.5, scale: 1.0, blend: 1.0 });
+                // Load a default overlay texture for the new layer
+                const defaultOverlayTextureUrl = 'https://placehold.co/512x512/FF0000/FFFFFF?text=Overlay+Layer&font=arial';
+                loader.load(defaultOverlayTextureUrl, (texture) => {
+                    layerData.texture = texture;
+                    updateShader(); // Update shader once the default texture is loaded
+                }, undefined, function(err) {
+                    console.error('An error occurred loading the default overlay layer texture:', err);
+                    showMessage('Failed to load default overlay layer texture.');
+                });
+
+                controlsHtml += `
+                    <div class="control-group">
+                        <label>Scale <span class="value-display">${layerData.scale}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="scale" data-type="overlay" min="0.1" max="5" step="0.01" value="${layerData.scale}">
+                    </div>
+                    <div class="control-group">
+                        <label>Blend <span class="value-display">${layerData.blend}</span></label>
+                        <input type="range" class="layer-slider" data-id="${layerId}" data-prop="blend" data-type="overlay" min="0" max="1" step="0.01" value="${layerData.blend}">
+                    </div>
+                `;
+            }
+
+            layerDiv.innerHTML = controlsHtml;
+            container.appendChild(layerDiv);
+            layers.push(layerData);
+            updateShader(); // Initial update after adding layer
+        }
+
+        function removeLayer(type, id) {
+            const layers = type === 'wear' ? wearLayers : overlayLayers;
+            const index = layers.findIndex(l => l.id === id);
+            if (index > -1) {
+                if (layers[index].texture) layers[index].texture.dispose();
+                if (layers[index].normalMap) layers[index].normalMap.dispose(); // Dispose normal map too
+                layers.splice(index, 1);
+            }
+            document.getElementById(id).remove();
+            // If the removed layer was selected, deselect it
+            if (selectedOverlayId === id) {
+                selectedOverlayId = null;
+                updateLayerSelectionUI();
+            }
+            updateShader();
+        }
+        
+        // --- Update & Event Handling ---
+        function updateShader() {
+            if (!mesh.material.uniforms) return;
+
+            // --- Pad Wear Layers ---
+            const paddedWearMaps = [];
+            const paddedWearNormalMaps = [];
+            const paddedWearParams = [];
+            const paddedWearNoiseParams = [];
+            const paddedWearScales = [];
+            const paddedWearNormalStrengths = [];
+            const paddedWearInvertEdges = []; // New: Padded invert edge flags
+            for (let i = 0; i < MAX_LAYERS; i++) {
+                if (i < wearLayers.length) {
+                    paddedWearMaps.push(wearLayers[i].texture || new THREE.Texture());
+                    paddedWearNormalMaps.push(wearLayers[i].normalMap || new THREE.Texture());
+                    paddedWearParams.push(new THREE.Vector3(wearLayers[i].amount, wearLayers[i].edgeThreshold, wearLayers[i].edgeSharpness));
+                    paddedWearNoiseParams.push(new THREE.Vector3(wearLayers[i].noiseScale, wearLayers[i].noiseDetail, wearLayers[i].noiseRoughness));
+                    paddedWearScales.push(wearLayers[i].wearScale);
+                    paddedWearNormalStrengths.push(wearLayers[i].normalStrength);
+                    paddedWearInvertEdges.push(wearLayers[i].invertEdge ? 1 : 0); // Convert boolean to int for shader
+                } else {
+                    paddedWearMaps.push(new THREE.Texture());
+                    paddedWearNormalMaps.push(new THREE.Texture());
+                    paddedWearParams.push(new THREE.Vector3());
+                    paddedWearNoiseParams.push(new THREE.Vector3());
+                    paddedWearScales.push(1.0);
+                    paddedWearNormalStrengths.push(1.0);
+                    paddedWearInvertEdges.push(0); // Default to not inverted for unused layers
+                }
+            }
+
+            // --- Pad Overlay Layers ---
+            const paddedOverlayMaps = [];
+            const paddedOverlayPositions = [];
+            const paddedOverlayParams = [];
+            for (let i = 0; i < MAX_LAYERS; i++) {
+                if (i < overlayLayers.length) {
+                    paddedOverlayMaps.push(overlayLayers[i].texture || new THREE.Texture());
+                    paddedOverlayPositions.push(new THREE.Vector2(overlayLayers[i].posX, overlayLayers[i].posY));
+                    paddedOverlayParams.push(new THREE.Vector2(overlayLayers[i].scale, overlayLayers[i].blend));
+                } else {
+                    paddedOverlayMaps.push(new THREE.Texture());
+                    paddedOverlayPositions.push(new THREE.Vector2());
+                    paddedOverlayParams.push(new THREE.Vector2());
+                }
+            }
+
+            // Update wear uniforms
+            mesh.material.uniforms.wearCount.value = wearLayers.length;
+            mesh.material.uniforms.wearMaps.value = paddedWearMaps;
+            mesh.material.uniforms.wearNormalMaps.value = paddedWearNormalMaps;
+            mesh.material.uniforms.wearParams.value = paddedWearParams;
+            mesh.material.uniforms.wearNoiseParams.value = paddedWearNoiseParams;
+            mesh.material.uniforms.wearScales.value = paddedWearScales;
+            mesh.material.uniforms.wearNormalStrengths.value = paddedWearNormalStrengths;
+            mesh.material.uniforms.wearInvertEdges.value = paddedWearInvertEdges; // Assign new uniform
+
+            // Update overlay uniforms
+            mesh.material.uniforms.overlayCount.value = overlayLayers.length;
+            mesh.material.uniforms.overlayMaps.value = paddedOverlayMaps;
+            mesh.material.uniforms.overlayPositions.value = paddedOverlayPositions;
+            mesh.material.uniforms.overlayParams.value = paddedOverlayParams;
+            
+            mesh.material.uniforms.materialRoughness.value = parseFloat(document.getElementById('roughnessSlider').value);
+
+            mesh.material.needsUpdate = true;
+        }
+
+        document.getElementById('addWearBtn').addEventListener('click', () => addLayer('wear'));
+        document.getElementById('addOverlayBtn').addEventListener('click', () => addLayer('overlay'));
+
+        document.getElementById('controls').addEventListener('click', e => {
+            if (e.target.classList.contains('remove-btn')) {
+                removeLayer(e.target.dataset.type, e.target.dataset.id);
+            }
+        });
+
+        document.getElementById('controls').addEventListener('input', e => {
+            if (e.target.classList.contains('layer-slider')) {
+                const { id, prop, type } = e.target.dataset;
+                const layers = type === 'wear' ? wearLayers : overlayLayers;
+                const layer = layers.find(l => l.id === id);
+                if (layer) {
+                    if (prop === 'normalStrength') {
+                        layer[prop] = parseFloat(e.target.value);
+                        e.target.parentElement.querySelector('.value-display').textContent = e.target.value;
+                        if (layer.texture && layer.texture.image) {
+                            layer.normalMap = generateNormalMapFromGrayscale(layer.texture.image, layer.normalStrength);
+                        }
+                    }
+                    else {
+                        layer[prop] = parseFloat(e.target.value);
+                        e.target.parentElement.querySelector('.value-display').textContent = e.target.value;
+                    }
+                    updateShader();
+                }
+            } else if (e.target.classList.contains('layer-checkbox')) { // Handle checkbox input
+                const { id, prop, type } = e.target.dataset;
+                const layers = type === 'wear' ? wearLayers : overlayLayers;
+                const layer = layers.find(l => l.id === id);
+                if (layer) {
+                    layer[prop] = e.target.checked;
+                    updateShader();
+                }
+            }
+            else if (e.target.id === 'roughnessSlider') {
+                 document.getElementById('roughnessValue').textContent = e.target.value;
+                 updateShader();
+            }
+        });
+        
+        document.getElementById('controls').addEventListener('change', e => {
+            if (e.target.classList.contains('layer-texture')) {
+                if (!e.target.files[0]) return;
+                const { id, type } = e.target.dataset;
+                const layers = type === 'wear' ? wearLayers : overlayLayers;
+                const layer = layers.find(l => l.id === id);
+                if (layer) {
+                    if (layer.texture) layer.texture.dispose();
+                    if (layer.normalMap) layer.normalMap.dispose();
+                    
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.crossOrigin = 'Anonymous';
+                        img.onload = () => {
+                            layer.texture = new THREE.Texture(img);
+                            layer.texture.needsUpdate = true;
+                            layer.normalMap = generateNormalMapFromGrayscale(img, layer.normalStrength);
+                            updateShader();
+                        };
+                        img.onerror = (err) => {
+                            console.error('Error loading image for normal map generation:', err);
+                            showMessage('Failed to load image for normal map generation.');
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+        
+        document.getElementById('baseTexture').addEventListener('change', function(e) {
+            if (!e.target.files[0]) {
+                baseTexture = null;
+                isBaseTextureLoaded = false;
+            } else {
+                 if (baseTexture) baseTexture.dispose();
+                 baseTexture = loader.load(URL.createObjectURL(e.target.files[0]), () => {
+                    isBaseTextureLoaded = true;
+                    mesh.material.uniforms.isBaseMapLoaded.value = true;
+                    mesh.material.uniforms.baseMap.value = baseTexture;
+                    mesh.material.needsUpdate = true;
+                }, undefined, function(err) {
+                    console.error('An error occurred loading the base texture:', err);
+                    showMessage('Failed to load default base texture. Please try uploading your own.');
+                });
+            }
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            // Clear layers
+            [...wearLayers].forEach(l => removeLayer('wear', l.id));
+            [...overlayLayers].forEach(l => removeLayer('overlay', l.id));
+            
+            // Reset base texture
+            document.getElementById('baseTexture').value = '';
+            if (baseTexture) baseTexture.dispose();
+            baseTexture = null;
+            isBaseTextureLoaded = false;
+            
+            // Reset roughness
+            document.getElementById('roughnessSlider').value = 0.5;
+            document.getElementById('roughnessValue').textContent = '0.5';
+
+            // Re-initialize
+            init();
+        });
+
+        // --- Initialization ---
+        function init() {
+            if (mesh.material && mesh.material.dispose) mesh.material.dispose();
+            mesh.material = createShaderMaterial();
+            
+            // Load default base texture
+            if (baseTexture) baseTexture.dispose();
+            baseTexture = loader.load('https://placehold.co/512x512/DDDDDD/000000?text=Base+Texture', () => {
+                isBaseTextureLoaded = true;
+                mesh.material.uniforms.isBaseMapLoaded.value = true;
+                mesh.material.uniforms.baseMap.value = baseTexture;
+                mesh.material.needsUpdate = true;
+            }, undefined, function(err) {
+                console.error('An error occurred loading the default base texture:', err);
+                showMessage('Failed to load default base texture. Please try uploading your own.');
+            });
+            
+            updateShader();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            init();
+            animate();
+        };
+
+        window.addEventListener('resize', function() {
+            camera.aspect = (window.innerWidth - 300) / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth - 300, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Modeling UI - Extended</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #18181b; /* Darker background */
+            color: #a1a1aa; /* Softer text color */
+            overflow: hidden;
+        }
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #27272a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #52525b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #71717a;
+        }
+        /* Panel style for floating effect */
+        .panel {
+            background-color: #27272a;
+            border: 1px solid #3f3f46;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        .sidebar-section {
+            border-bottom: 1px solid #3f3f46;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        .sidebar-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .toggle-switch {
+            width: 36px;
+            height: 20px;
+            background-color: #52525b;
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .toggle-switch.active {
+            background-color: #f59e0b; /* Orange accent */
+        }
+        .toggle-switch .toggle-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+        .toggle-switch.active .toggle-knob {
+            transform: translateX(16px);
+        }
+        .custom-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #f59e0b; /* Orange accent */
+            cursor: pointer;
+            border-radius: 50%;
+            margin-top: -5px; /* Adjust to center thumb vertically */
+        }
+        .custom-range::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #f59e0b; /* Orange accent */
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            border: 1px solid #52525b;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; }
+        
+        #c {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Specific styles for UV Editor */
+        #uv-editor-canvas {
+            background-color: #1a1a1a;
+            border: 1px dashed #3f3f46;
+            display: block; /* Changed to block for drawing */
+            width: 100%;
+            height: 100%;
+        }
+        .uv-editor-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #52525b;
+            font-size: 0.875rem;
+            text-align: center;
+            pointer-events: none; /* Allow clicks to pass through */
+        }
+        /* Active transform button style */
+        .transform-active {
+            background-color: #2563eb !important; /* Blue accent */
+            color: white !important;
+        }
+        .pbr-map-preview {
+            width: 64px;
+            height: 64px;
+            border: 1px dashed #3f3f46;
+            border-radius: 0.375rem;
+            object-fit: contain;
+            background-color: #1a1a1a;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #f59e0b;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-[#18181b] text-zinc-400">
+    <div id="app" class="flex flex-col h-screen w-screen p-3 gap-3">
+        <!-- Header -->
+        <header class="panel flex items-center justify-between px-4 py-2 h-14 flex-shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center font-bold text-white">A</div>
+                    <div>
+                        <div class="text-sm font-semibold text-zinc-100">Andrew Kramar</div>
+                        <div class="text-xs text-zinc-400">Design Agency</div>
+                    </div>
+                </div>
+                <div class="w-px h-8 bg-zinc-700"></div>
+                <div>
+                    <div class="text-sm font-semibold text-zinc-100" id="camera-view-status">Camera Perspective</div>
+                    <div class="text-xs text-zinc-400" id="modelling-status">Modeling - Object</div>
+                </div>
+                 <!-- Mode Toggle -->
+                <div class="flex items-center bg-zinc-800 rounded-lg p-1">
+                    <button id="object-mode-btn" class="p-1.5 rounded-md bg-blue-600 text-white">Object Mode</button>
+                    <button id="edit-mode-btn" class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white">Edit Mode</button>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="flex items-center bg-zinc-800 rounded-lg p-1">
+                    <button class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 1v4m0 0h-4m4 0l-5-5"></path></svg>
+                    </button>
+                     <button class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
+                    <button class="p-1.5 rounded-md bg-blue-600 text-white">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+                <div class="w-px h-8 bg-zinc-700"></div>
+                <button class="flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-700">
+                    <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-sm font-bold text-white">DG</div>
+                    <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <button class="p-2 rounded-lg hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                </button>
+                 <button class="p-2 rounded-lg bg-blue-600 text-white">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="flex flex-1 overflow-hidden gap-3">
+            <!-- Left Sidebar -->
+            <aside class="panel w-64 p-4 flex-shrink-0 flex flex-col">
+                <div class="overflow-y-auto flex-1">
+                    <!-- Page Section -->
+                    <div class="sidebar-section">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-semibold text-zinc-100">Page</h3>
+                            <button class="text-zinc-400 hover:text-white">
+                               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            </button>
+                        </div>
+                        <ul class="space-y-1 text-sm">
+                            <li id="layout-page-btn" class="flex justify-between items-center p-2 rounded-lg hover:bg-zinc-700 cursor-pointer">
+                                <span>Layout</span>
+                                <span class="bg-zinc-800 text-zinc-400 rounded-md px-2 py-0.5 text-xs">⌘+1</span>
+                            </li>
+                            <li id="modelling-page-btn" class="flex justify-between items-center p-2 rounded-lg bg-blue-600/20 text-blue-300 cursor-pointer">
+                                <span>Modelling</span>
+                                <span class="bg-zinc-800 text-zinc-400 rounded-md px-2 py-0.5 text-xs">⌘+2</span>
+                            </li>
+                            <li id="uv-editing-page-btn" class="flex justify-between items-center p-2 rounded-lg hover:bg-zinc-700 cursor-pointer">
+                                <span>UV Editing</span>
+                                <span class="bg-zinc-800 text-zinc-400 rounded-md px-2 py-0.5 text-xs">⌘+3</span>
+                            </li>
+                            <li id="shader-page-btn" class="flex justify-between items-center p-2 rounded-lg hover:bg-zinc-700 cursor-pointer">
+                                <span>Shader</span>
+                                <span class="bg-zinc-800 text-zinc-400 rounded-md px-2 py-0.5 text-xs">⌘+4</span>
+                            </li>
+                            <li id="rendering-page-btn" class="flex justify-between items-center p-2 rounded-lg hover:bg-zinc-700 cursor-pointer">
+                                <span>Rendering</span>
+                                <span class="bg-zinc-800 text-zinc-400 rounded-md px-2 py-0.5 text-xs">⌘+6</span>
+                            </li>
+                            <li id="nodes-page-btn" class="flex justify-between items-center p-2 rounded-lg hover:bg-zinc-700 cursor-pointer">
+                                <span>Nodes</span>
+                                <span class="bg-zinc-800 text-zinc-400 rounded-md px-2 py-0.5 text-xs">⌘+5</span>
+                            </li>
+                        </ul>
+                        <button class="mt-3 w-full text-sm text-center py-2 rounded-lg border border-dashed border-zinc-600 hover:bg-zinc-700 hover:border-zinc-500 text-zinc-400">
+                            Add New Page
+                        </button>
+                    </div>
+                    <!-- Layers Section -->
+                    <div class="sidebar-section">
+                        <h3 class="font-semibold text-zinc-100 mb-3">Layers</h3>
+                        <div class="relative mb-3">
+                            <input type="text" placeholder="Search" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-8 pr-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 text-zinc-100">
+                            <svg class="w-4 h-4 absolute top-1/2 left-2.5 -translate-y-1/2 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <ul class="space-y-1 text-sm">
+                           <li>
+                                <div class="flex items-center p-1 rounded-lg hover:bg-zinc-700 cursor-pointer">
+                                    <svg class="w-4 h-4 text-zinc-500 mr-2 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    Scene
+                                </div>
+                                <ul class="ml-6 space-y-1">
+                                    <li><div class="p-1 rounded-lg hover:bg-zinc-700 cursor-pointer text-zinc-400">Directional Light</div></li>
+                                    <li><div class="p-1 rounded-lg hover:bg-zinc-700 cursor-pointer text-zinc-400">Objects</div></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <div class="flex items-center p-1 rounded-lg bg-blue-600/20 text-blue-300 cursor-pointer">
+                                    <svg class="w-4 h-4 text-blue-300 mr-2 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    Model
+                                </div>
+                            </li>
+                            <li><div class="p-1 rounded-lg hover:bg-zinc-700 cursor-pointer text-zinc-400">UV Editing</div></li>
+                            <li>
+                                <div class="flex items-center p-1 rounded-lg hover:bg-zinc-700 cursor-pointer">
+                                    <svg class="w-4 h-4 text-zinc-500 mr-2 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    Materials
+                                </div>
+                            </li>
+                            <li>
+                                <div class="flex items-center p-1 rounded-lg hover:bg-zinc-700 cursor-pointer">
+                                    <svg class="w-4 h-4 text-zinc-500 mr-2 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    Modelling
+                                </div>
+                            </li>
+                            <li><div class="p-1 rounded-lg hover:bg-zinc-700 cursor-pointer text-zinc-400">Floor</div></li>
+                        </ul>
+                    </div>
+                    <!-- GLTF Loader Section -->
+                    <div class="sidebar-section">
+                        <h3 class="font-semibold text-zinc-100 mb-3">Load Model</h3>
+                        <input type="file" id="gltf-file-input" accept=".gltf,.glb" class="hidden">
+                        <button id="load-gltf-button" class="w-full text-sm text-center py-2 rounded-lg border border-dashed border-blue-600 hover:bg-blue-600/20 hover:border-blue-500 text-blue-300">
+                            Load GLTF Model
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 panel relative flex flex-col overflow-hidden bg-[#1E293B]"> <!-- Changed background to dark blue -->
+                <!-- 3D Viewport -->
+                <div id="modelling-view" class="flex-1 relative overflow-hidden">
+                    <canvas id="c" class="w-full h-full"></canvas>
+                    <!-- Context Menu -->
+                    <div id="context-menu" class="hidden absolute bg-[#2c3243] border border-zinc-700 rounded-lg shadow-lg p-2 w-48 text-sm z-10">
+                        <div class="text-zinc-400 mb-1">Add</div>
+                        <ul>
+                            <li class="flex items-center justify-between p-2 rounded-md hover:bg-zinc-700 cursor-pointer text-zinc-100">
+                                <span>Move</span>
+                                <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </li>
+                            <li class="flex items-center justify-between p-2 rounded-md hover:bg-zinc-700 cursor-pointer text-zinc-100">
+                                <span>Material</span>
+                                <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </li>
+                            <li class="flex items-center justify-between p-2 rounded-md bg-blue-600 text-white cursor-pointer">
+                                <span>Mesh</span>
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </li>
+                            <li class="flex items-center justify-between p-2 rounded-md hover:bg-zinc-700 cursor-pointer text-zinc-100">
+                                <span>Grease Pencil</span>
+                                <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </li>
+                            <li class="flex items-center justify-between p-2 rounded-md hover:bg-zinc-700 cursor-pointer text-zinc-100">
+                                <span>Text</span>
+                                <svg class="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- UV Editor View -->
+                <div id="uv-editing-view" class="flex-1 p-4 flex flex-col items-center justify-center hidden">
+                    <div class="relative w-full h-full rounded-lg overflow-hidden">
+                        <canvas id="uv-editor-canvas" class="w-full h-full"></canvas>
+                        <p id="uv-editor-message" class="uv-editor-message">No mesh selected or no UVs found.</p>
+                    </div>
+                    <div class="flex gap-2 mt-3 text-sm">
+                        <button class="bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600">Unwrap</button>
+                        <button class="bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600">Pack</button>
+                        <button class="bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600">Export UV</button>
+                    </div>
+                </div>
+
+                <!-- Shader View -->
+                <div id="shader-view" class="flex-1 p-4 flex flex-col overflow-y-auto hidden">
+                    <h2 class="text-xl font-semibold text-zinc-100 mb-4">Shader & Texturing</h2>
+
+                    <!-- Apply Individual PBR Maps Section -->
+                    <div class="sidebar-section">
+                        <h3 class="font-semibold text-zinc-100 mb-3">Apply Individual PBR Maps</h3>
+                        <p class="text-sm text-zinc-400 mb-4">Load your pre-made PBR textures here. Ensure you have a mesh selected in the modelling view.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex items-center gap-2">
+                                <label for="albedo-map-input" class="w-24 text-right text-sm">Albedo (Color):</label>
+                                <input type="file" id="albedo-map-input" accept="image/*" class="hidden">
+                                <button class="flex-1 bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600 text-xs" onclick="document.getElementById('albedo-map-input').click()">Choose File</button>
+                                <img id="albedo-map-preview" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=Al">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="normal-map-input" class="w-24 text-right text-sm">Normal Map:</label>
+                                <input type="file" id="normal-map-input" accept="image/*" class="hidden">
+                                <button class="flex-1 bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600 text-xs" onclick="document.getElementById('normal-map-input').click()">Choose File</button>
+                                <img id="normal-map-preview" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=Nm">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="roughness-map-input" class="w-24 text-right text-sm">Roughness Map:</label>
+                                <input type="file" id="roughness-map-input" accept="image/*" class="hidden">
+                                <button class="flex-1 bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600 text-xs" onclick="document.getElementById('roughness-map-input').click()">Choose File</button>
+                                <img id="roughness-map-preview" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=Rg">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="metalness-map-input" class="w-24 text-right text-sm">Metalness Map:</label>
+                                <input type="file" id="metalness-map-input" accept="image/*" class="hidden">
+                                <button class="flex-1 bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600 text-xs" onclick="document.getElementById('metalness-map-input').click()">Choose File</button>
+                                <img id="metalness-map-preview" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=Mt">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label for="ao-map-input" class="w-24 text-right text-sm">AO Map:</label>
+                                <input type="file" id="ao-map-input" accept="image/*" class="hidden">
+                                <button class="flex-1 bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600 text-xs" onclick="document.getElementById('ao-map-input').click()">Choose File</button>
+                                <img id="ao-map-preview" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=AO">
+                            </div>
+                        </div>
+                        <button id="apply-pbr-maps-btn" class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition-colors mt-4">Apply Selected PBR Maps</button>
+                    </div>
+
+                    <!-- Generate PBR from Base Image (AI Simulation) Section -->
+                    <div class="sidebar-section mt-6">
+                        <h3 class="font-semibold text-zinc-100 mb-3">Generate PBR from Base Image (AI Simulation)</h3>
+                        <p class="text-sm text-zinc-400 mb-4">Upload a base image and click "Generate" to simulate AI-driven PBR map generation. Note: This is a conceptual demonstration. The AI model currently generates generic maps based on text prompts, not direct image analysis.</p>
+                        <div class="flex items-center gap-2 mb-4">
+                            <label for="pbr-base-image-input" class="w-24 text-right text-sm">Base Image:</label>
+                            <input type="file" id="pbr-base-image-input" accept="image/*" class="hidden">
+                            <button class="flex-1 bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600 text-xs" onclick="document.getElementById('pbr-base-image-input').click()">Choose Base Image</button>
+                            <img id="pbr-base-image-preview" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=Base">
+                        </div>
+                        <button id="generate-pbr-ai-btn" class="w-full bg-orange-500 text-white font-bold py-2 rounded-lg hover:bg-orange-600 transition-colors">
+                            Generate PBR Maps (AI)
+                            <span id="generate-pbr-spinner" class="spinner hidden"></span>
+                        </button>
+                        <div id="generated-pbr-previews" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
+                            <div class="flex flex-col items-center">
+                                <img id="generated-albedo" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=Al">
+                                <span class="text-xs text-zinc-400 mt-1">Albedo</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <img id="generated-normal" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=Nm">
+                                <span class="text-xs text-zinc-400 mt-1">Normal</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <img id="generated-roughness" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=Rg">
+                                <span class="text-xs text-zinc-400 mt-1">Roughness</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <img id="generated-metalness" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=Mt">
+                                <span class="text-xs text-zinc-400 mt-1">Metalness</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <img id="generated-ao" class="pbr-map-preview" src="https://placehold.co/64x64/1a1a1a/52525b?text=AO">
+                                <span class="text-xs text-zinc-400 mt-1">AO</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layered Painting (Future Feature) Section -->
+                    <div class="sidebar-section mt-6">
+                        <h3 class="font-semibold text-zinc-100 mb-3">Layered Painting (Future Feature)</h3>
+                        <p class="text-sm text-zinc-400">Implementing a Substance Painter-like layered painting system is a complex feature that would involve a dedicated 2D painting canvas, brush tools, layer management, and real-time projection onto the 3D model. This functionality is planned for future development.</p>
+                    </div>
+                </div>
+
+                <!-- Rendering View -->
+                <div id="rendering-view" class="flex-1 p-4 flex flex-col items-center justify-center hidden">
+                    <h2 class="text-xl font-semibold text-zinc-100 mb-4">Pathtracing Render</h2>
+                    <p class="text-sm text-zinc-400 mb-4 text-center">
+                        Simulating a pathtracing render. True real-time pathtracing in a browser is highly resource-intensive and typically requires advanced WebGL/WebGPU shaders or dedicated engines. This demonstration uses AI to generate a conceptual "rendered" image.
+                    </p>
+                    <div id="render-output-container" class="relative w-full h-full max-w-2xl max-h-[70vh] bg-zinc-900 rounded-lg flex items-center justify-center overflow-hidden">
+                        <img id="rendered-image" class="max-w-full max-h-full object-contain hidden" alt="Rendered Output">
+                        <div id="render-loading-spinner" class="spinner w-12 h-12 hidden"></div>
+                        <p id="render-message" class="text-zinc-500 text-lg hidden">Rendering...</p>
+                    </div>
+                    <button id="back-to-modelling-btn" class="mt-4 bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors hidden">
+                        Back to Modelling
+                    </button>
+                </div>
+
+                <!-- Bottom Toolbar (Common for both views) -->
+                <div class="flex-shrink-0 flex items-center gap-2 bg-[#27272a] border border-zinc-700 rounded-lg p-1 shadow-lg mx-auto mb-4">
+                    <button id="focus-btn" class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
+                    <button id="move-btn" class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    </button>
+                    <button id="rotate-btn" class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white transform-active">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                    <button id="scale-btn" class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 0h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </button>
+                    <button class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    </button>
+                    <button class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    </button>
+                    <button class="p-1.5 rounded-md hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                </div>
+            </main>
+
+            <!-- Right Sidebar -->
+            <aside class="panel w-72 p-4 flex-shrink-0 flex flex-col">
+                <div class="overflow-y-auto flex-1">
+                    <!-- Frame Section -->
+                    <div class="sidebar-section">
+                        <h3 class="font-semibold text-zinc-100 mb-3">Frame</h3>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between items-center"><label>Size</label><select class="bg-zinc-700 rounded-md px-2 py-1 text-xs w-28 border border-zinc-600 text-zinc-100"><option>Responsive</option><option>Fixed</option></select></div>
+                            <div class="flex justify-between items-center"><label>Auto Zoom</label><div class="toggle-switch active"><div class="toggle-knob"></div></div></div>
+                            <div class="flex justify-between items-center"><label>Screen UI</label><select class="bg-zinc-700 rounded-md px-2 py-1 text-xs w-28 border border-zinc-600 text-zinc-100"><option>None</option><option>Grid</option></select></div>
+                        </div>
+                    </div>
+                     <!-- Material Section -->
+                     <div class="sidebar-section">
+                        <h3 class="font-semibold text-zinc-100 mb-3">Material</h3>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between items-center"><label>Color</label><div class="flex items-center gap-2"><input type="color" id="color-picker" value="#0ea5e9" class="cursor-pointer"><input type="text" value="100%" class="bg-zinc-700 rounded-md px-2 py-1 text-xs w-16 text-center border border-zinc-600 text-zinc-100"></div></div>
+                            <div class="flex justify-between items-center"><label>Specular</label><input type="range" class="w-32 custom-range" min="0" max="100" value="75"></div>
+                            <div class="flex justify-between items-center"><label>Texture</label><button id="apply-texture-button" class="bg-zinc-700 text-zinc-100 px-3 py-1 rounded-md hover:bg-zinc-600 text-xs">Apply Texture</button></div>
+                            <input type="file" id="texture-file-input" accept="image/*" class="hidden">
+                        </div>
+                    </div>
+                     <!-- Camera Section -->
+                     <div class="sidebar-section">
+                        <h3 class="font-semibold text-zinc-100 mb-3">Camera</h3>
+                        <div class="bg-zinc-800 rounded-lg p-2 flex justify-center items-center h-24 border border-zinc-700"><img src="https://placehold.co/150x80/27272a/71717a?text=Camera+View" alt="Camera view diagram" class="rounded"></div>
+                        <div class="flex justify-between items-center mt-3 text-sm"><label>View</label>
+                            <select id="camera-view-select" class="bg-zinc-700 rounded-md px-2 py-1 text-xs w-28 border border-zinc-600 text-zinc-100">
+                                <option value="perspective">Perspective</option>
+                                <option value="orthographic">Orthographic</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Rendering Section -->
+                    <div class="sidebar-section">
+                        <h3 class="font-semibold text-zinc-100 mb-3">Rendering</h3>
+                        <p class="text-sm text-zinc-400 mb-3">Simulate a pathtracing render of your scene. (Note: This is a conceptual demo, not a real-time pathtracer).</p>
+                        <button id="start-pathtracing-btn" class="w-full bg-orange-500 text-white font-bold py-2 rounded-lg hover:bg-orange-600 transition-colors">
+                            Start Pathtracing Render
+                        </button>
+                    </div>
+                    <!-- Details Sections -->
+                     <div class="sidebar-section"><details class="text-sm"><summary class="font-semibold text-zinc-100 cursor-pointer list-none flex justify-between items-center">Light<svg class="w-4 h-4 transition-transform transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></summary></details></div>
+                     <div class="sidebar-section"><details class="text-sm"><summary class="font-semibold text-zinc-100 cursor-pointer list-none flex justify-between items-center">Simulation<svg class="w-4 h-4 transition-transform transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></summary></details></div>
+                    <div class="sidebar-section"><details class="text-sm" open><summary class="font-semibold text-zinc-100 cursor-pointer list-none flex justify-between items-center">Effects<svg class="w-4 h-4 transition-transform transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></summary><div class="mt-3 flex justify-between items-center text-sm"><label>Ambient Occlusion</label><div class="toggle-switch"><div class="toggle-knob"></div></div></div></details></div>
+                </div>
+                <button class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition-colors mt-4 flex-shrink-0">
+                    + Render
+                </button>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Import maps for three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <!-- Main application script -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // --- UI Elements ---
+        const contextMenu = document.getElementById('context-menu');
+        const canvasContainer = document.querySelector('main'); // The main panel holding both views
+        const threeDCanvas = document.getElementById('c');
+        const uvEditorCanvas = document.getElementById('uv-editor-canvas');
+        const uvEditorMessage = document.getElementById('uv-editor-message');
+        const modellingViewDiv = document.getElementById('modelling-view');
+        const uvEditingViewDiv = document.getElementById('uv-editing-view');
+        const shaderViewDiv = document.getElementById('shader-view'); // New shader view div
+        const renderingViewDiv = document.getElementById('rendering-view'); // New rendering view div
+
+        const colorPicker = document.getElementById('color-picker');
+        const gltfFileInput = document.getElementById('gltf-file-input');
+        const loadGltfButton = document.getElementById('load-gltf-button');
+        const applyTextureButton = document.getElementById('apply-texture-button');
+        const textureFileInput = document.getElementById('texture-file-input');
+
+        const modellingPageBtn = document.getElementById('modelling-page-btn');
+        const uvEditingPageBtn = document.getElementById('uv-editing-page-btn');
+        const shaderPageBtn = document.getElementById('shader-page-btn'); // New shader page button
+        const renderingPageBtn = document.getElementById('rendering-page-btn'); // New rendering page button
+
+        const cameraViewStatus = document.getElementById('camera-view-status');
+        const modellingStatus = document.getElementById('modelling-status');
+        const cameraViewSelect = document.getElementById('camera-view-select');
+
+        // New toolbar buttons
+        const focusBtn = document.getElementById('focus-btn');
+        const moveBtn = document.getElementById('move-btn');
+        const rotateBtn = document.getElementById('rotate-btn');
+        const scaleBtn = document.getElementById('scale-btn');
+
+        // PBR Map Inputs and Previews
+        const albedoMapInput = document.getElementById('albedo-map-input');
+        const normalMapInput = document.getElementById('normal-map-input');
+        const roughnessMapInput = document.getElementById('roughness-map-input');
+        const metalnessMapInput = document.getElementById('metalness-map-input');
+        const aoMapInput = document.getElementById('ao-map-input');
+        const applyPBRMapsBtn = document.getElementById('apply-pbr-maps-btn');
+
+        const albedoMapPreview = document.getElementById('albedo-map-preview');
+        const normalMapPreview = document.getElementById('normal-map-preview');
+        const roughnessMapPreview = document.getElementById('roughness-map-preview');
+        const metalnessMapPreview = document.getElementById('metalness-map-preview');
+        const aoMapPreview = document.getElementById('ao-map-preview');
+
+        // AI PBR Generation Elements
+        const pbrBaseImageInput = document.getElementById('pbr-base-image-input');
+        const pbrBaseImagePreview = document.getElementById('pbr-base-image-preview');
+        const generatePBR_AI_Btn = document.getElementById('generate-pbr-ai-btn');
+        const generatePBRSpinner = document.getElementById('generate-pbr-spinner');
+
+        const generatedAlbedo = document.getElementById('generated-albedo');
+        const generatedNormal = document.getElementById('generated-normal');
+        const generatedRoughness = document.getElementById('generated-roughness');
+        const generatedMetalness = document.getElementById('generated-metalness');
+        const generatedAo = document.getElementById('generated-ao');
+
+        // New UI elements for Mode Toggle
+        const objectModeBtn = document.getElementById('object-mode-btn');
+        const editModeBtn = document.getElementById('edit-mode-btn');
+
+        // New UI elements for Rendering
+        const startPathtracingBtn = document.getElementById('start-pathtracing-btn');
+        const renderedImage = document.getElementById('rendered-image');
+        const renderLoadingSpinner = document.getElementById('render-loading-spinner');
+        const renderMessage = document.getElementById('render-message');
+        const backToModellingBtn = document.getElementById('back-to-modelling-btn');
+
+
+        // --- Three.js Globals ---
+        let camera, scene, renderer, orbitControls, transformControls;
+        let originalClockModel;
+        let loadedGLTFModel = null;
+        let selectedMesh = null; // The currently selected mesh (whole object)
+        let currentView = 'modelling'; // 'modelling', 'uv-editing', 'shader', or 'rendering'
+
+        // New globals for Edit Mode
+        let currentMode = 'object'; // 'object' or 'edit'
+        let selectedVertexIndex = -1; // Store index of the single selected vertex
+        let vertexHighlightsGroup; // Group for highlight spheres
+        let vertexTransformTarget; // Dummy object for TransformControls in edit mode
+
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // --- UV Editor Canvas Context ---
+        let uvCtx;
+
+        // --- UI Interactivity Functions ---
+        function updateViewStatus(viewName, objectName = 'Object') {
+            modellingStatus.textContent = `${viewName} - ${objectName}`;
+            cameraViewStatus.textContent = `Camera ${camera instanceof THREE.PerspectiveCamera ? 'Perspective' : 'Orthographic'}`;
+        }
+
+        function setActivePageButton(activeButtonId) {
+            const buttons = [modellingPageBtn, uvEditingPageBtn, shaderPageBtn, renderingPageBtn]; // Include new rendering button
+            buttons.forEach(btn => {
+                if (btn.id === activeButtonId) {
+                    btn.classList.add('bg-blue-600/20', 'text-blue-300');
+                    btn.classList.remove('hover:bg-zinc-700', 'text-zinc-400');
+                } else {
+                    btn.classList.remove('bg-blue-600/20', 'text-blue-300');
+                    btn.classList.add('hover:bg-zinc-700', 'text-zinc-400');
+                }
+            });
+        }
+
+        function hideAllViews() {
+            modellingViewDiv.classList.add('hidden');
+            uvEditingViewDiv.classList.add('hidden');
+            shaderViewDiv.classList.add('hidden');
+            renderingViewDiv.classList.add('hidden'); // Hide rendering view
+            
+            renderer.setAnimationLoop(null); // Stop 3D rendering loop
+            orbitControls.enabled = false; // Disable orbit controls
+            transformControls.enabled = false; // Disable transform controls
+            transformControls.detach(); // Ensure controls are detached
+            clearVertexHighlights(); // Clear any vertex highlights
+            selectedVertexIndex = -1; // Clear selected vertex
+        }
+
+        function showModellingView() {
+            hideAllViews();
+            modellingViewDiv.classList.remove('hidden');
+            currentView = 'modelling';
+            setActivePageButton('modelling-page-btn');
+            renderer.setAnimationLoop(animate); // Resume 3D rendering loop
+            orbitControls.enabled = true; // Enable orbit controls for 3D view
+            
+            // Re-attach transform controls based on current mode and selection
+            if (currentMode === 'object') {
+                if (selectedMesh) {
+                    transformControls.attach(selectedMesh);
+                } else if (loadedGLTFModel) {
+                    transformControls.attach(loadedGLTFModel);
+                } else {
+                    transformControls.attach(originalClockModel);
+                }
+                transformControls.enabled = true;
+            } else if (currentMode === 'edit') {
+                // In edit mode, controls attach only when a vertex is selected
+                transformControls.enabled = true; // Still enable them to be ready
+            }
+            onWindowResize(); // Adjust 3D canvas size
+        }
+
+        function showUVEditingView() {
+            hideAllViews();
+            uvEditingViewDiv.classList.remove('hidden');
+            currentView = 'uv-editing';
+            setActivePageButton('uv-editing-page-btn');
+            drawUVsForSelectedMesh(); // Draw UVs if a mesh is selected
+            resizeUVEditorCanvas(); // Adjust UV canvas size
+        }
+
+        function showShaderView() {
+            hideAllViews();
+            shaderViewDiv.classList.remove('hidden');
+            currentView = 'shader';
+            setActivePageButton('shader-page-btn');
+        }
+
+        function showRenderingView() {
+            hideAllViews();
+            renderingViewDiv.classList.remove('hidden');
+            currentView = 'rendering';
+            setActivePageButton('rendering-page-btn');
+            // No 3D rendering loop or controls needed in this view
+            renderLoadingSpinner.classList.add('hidden');
+            renderMessage.classList.add('hidden');
+            renderedImage.classList.add('hidden');
+            backToModellingBtn.classList.add('hidden');
+        }
+
+
+        // Context menu positioning
+        canvasContainer.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            contextMenu.style.left = `${e.clientX}px`;
+            contextMenu.style.top = `${e.clientY}px`;
+            contextMenu.classList.remove('hidden');
+
+            const rect = contextMenu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) {
+                contextMenu.style.left = `${e.clientX - rect.width}px`;
+            }
+            if (rect.bottom > window.innerHeight) {
+                contextMenu.style.top = `${e.clientY - rect.height}px`;
+            }
+        });
+        window.addEventListener('click', (e) => {
+            if (!contextMenu.contains(e.target) && e.target !== canvasContainer) {
+                contextMenu.classList.add('hidden');
+            }
+        });
+        
+        // Toggle switches
+        document.querySelectorAll('.toggle-switch').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                toggle.classList.toggle('active');
+            });
+        });
+        
+        // Details/Summary arrow rotation
+        document.querySelectorAll('details').forEach(detail => {
+            detail.addEventListener('toggle', (e) => {
+                const icon = e.target.querySelector('summary svg');
+                if (icon) {
+                    icon.classList.toggle('rotate-90', e.target.open);
+                }
+            });
+        });
+
+        // Page navigation buttons
+        modellingPageBtn.addEventListener('click', showModellingView);
+        uvEditingPageBtn.addEventListener('click', showUVEditingView);
+        shaderPageBtn.addEventListener('click', showShaderView); // Event listener for new shader page
+        renderingPageBtn.addEventListener('click', showRenderingView); // Event listener for new rendering page
+
+        // GLTF Loader
+        loadGltfButton.addEventListener('click', () => gltfFileInput.click());
+        gltfFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                loadGLTFModel(file);
+            }
+        });
+
+        // Texture Application (for general texture, not PBR maps)
+        applyTextureButton.addEventListener('click', () => textureFileInput.click());
+        textureFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file && selectedMesh) {
+                applyTextureToSelectedMesh(file);
+            } else if (!selectedMesh) {
+                console.warn("No mesh selected to apply texture to.");
+            }
+        });
+
+        // Camera View Selection
+        cameraViewSelect.addEventListener('change', (event) => {
+            const newCameraType = event.target.value;
+            const currentPosition = camera.position.clone();
+            const currentLookAt = orbitControls.target.clone(); // Use orbitControls.target for lookAt
+            
+            // Dispose old camera
+            camera.clear();
+
+            if (newCameraType === 'perspective') {
+                camera = new THREE.PerspectiveCamera(75, threeDCanvas.clientWidth / threeDCanvas.clientHeight, 0.1, 1000);
+            } else { // orthographic
+                const aspect = threeDCanvas.clientWidth / threeDCanvas.clientHeight;
+                const frustumSize = 6;
+                camera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0.1, 100);
+            }
+            camera.position.copy(currentPosition);
+            camera.lookAt(currentLookAt); // Look at the same target
+            camera.updateProjectionMatrix();
+
+            // Update OrbitControls and TransformControls with the new camera
+            orbitControls.object = camera;
+            transformControls.camera = camera;
+            
+            updateViewStatus(currentView, selectedMesh ? (selectedMesh.name || 'Selected Object') : (loadedGLTFModel ? 'GLTF Model' : 'Default Clock'));
+            onWindowResize(); // Ensure correct aspect ratio
+        });
+
+        // Transform controls buttons
+        const transformButtons = [moveBtn, rotateBtn, scaleBtn];
+
+        function setTransformMode(mode, activeBtn) {
+            transformControls.setMode(mode);
+            transformButtons.forEach(btn => btn.classList.remove('transform-active'));
+            if (activeBtn) {
+                activeBtn.classList.add('transform-active');
+            }
+        }
+
+        moveBtn.addEventListener('click', () => setTransformMode('translate', moveBtn));
+        rotateBtn.addEventListener('click', () => setTransformMode('rotate', rotateBtn));
+        scaleBtn.addEventListener('click', () => setTransformMode('scale', scaleBtn));
+        
+        // Focus button
+        focusBtn.addEventListener('click', focusCameraOnSelected);
+
+        // Keyboard shortcuts for transform modes and view changes
+        window.addEventListener('keydown', (event) => {
+            if (currentView === 'modelling') { // Only active in modelling view
+                switch (event.key.toUpperCase()) {
+                    case 'W': // Move
+                        setTransformMode('translate', moveBtn);
+                        break;
+                    case 'R': // Rotate
+                        setTransformMode('rotate', rotateBtn);
+                        break;
+                    case 'S': // Scale
+                        setTransformMode('scale', scaleBtn);
+                        break;
+                    case '7': // Top View
+                        setOrthographicView('top');
+                        break;
+                    case '1': // Front View
+                        setOrthographicView('front');
+                        break;
+                    case '3': // Right View
+                        setOrthographicView('right');
+                        break;
+                    case '9': // Invert View
+                        invertOrthographicView();
+                        break;
+                    case 'TAB': // Toggle Object/Edit Mode
+                        event.preventDefault(); // Prevent default browser tab behavior
+                        toggleEditMode();
+                        break;
+                }
+            }
+        });
+
+        // --- Three.js Scene Setup ---
+        function initThreeJS() {
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, canvas: threeDCanvas, alpha: true });
+            renderer.setClearColor(0x000000, 0); // Transparent background
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1E293B); // Dark blue environment background
+
+            // Camera (Default to Perspective)
+            const aspect = threeDCanvas.clientWidth / threeDCanvas.clientHeight;
+            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000); // FOV, Aspect, Near, Far
+            camera.position.set(4, 4, 4); // Initial camera position
+            camera.lookAt(0, 0, 0);
+            cameraViewSelect.value = 'perspective'; // Set dropdown to perspective
+            updateViewStatus(currentView, 'Default Clock');
+
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); // Soft overall light
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Main light source
+            directionalLight.position.set(8, 10, 5);
+            scene.add(directionalLight);
+
+            // Ground Plane and Grid - subtle dark grid
+            const grid = new THREE.GridHelper(20, 20, 0x444444, 0x444444); // Darker grid lines
+            grid.material.opacity = 0.3;
+            grid.material.transparent = true;
+            grid.position.y = -1.5; // Position below the model
+            scene.add(grid);
+
+            // Create initial Clock Model
+            originalClockModel = createClockModel();
+            scene.add(originalClockModel);
+
+            // Orbit Controls (for camera movement)
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true; // Smooth camera movement
+            orbitControls.dampingFactor = 0.1;
+            orbitControls.screenSpacePanning = false; // Prevents camera from moving off-plane
+
+            // Blender-like mouse button mapping
+            orbitControls.mouseButtons = {
+                LEFT: null,             // No action for LMB
+                MIDDLE: THREE.MOUSE.ROTATE, // MMB for orbit
+                RIGHT: THREE.MOUSE.PAN    // RMB for pan
+            };
+            orbitControls.listenToKeyEvents(window); // Listen for keyboard events (e.g., for dolly/zoom)
+
+
+            // Transform Controls (for model/vertex manipulation)
+            transformControls = new TransformControls(camera, renderer.domElement);
+            transformControls.attach(originalClockModel); // Initially attached to default model
+            transformControls.setMode('rotate'); // Default mode for objects
+            scene.add(transformControls);
+            setTransformMode('rotate', rotateBtn); // Set initial active button
+            
+            // Disable orbit controls when transform controls are active
+            transformControls.addEventListener('dragging-changed', function (event) {
+                orbitControls.enabled = !event.value;
+            });
+
+            // Listener for transformControls changes to apply to vertices in Edit Mode
+            transformControls.addEventListener('objectChange', () => {
+                if (currentMode === 'edit' && selectedMesh && selectedVertexIndex !== -1) {
+                    // Get the new world position of the vertexTransformTarget
+                    const newVertexWorldPos = vertexTransformTarget.position.clone();
+                    
+                    // Convert this world position back to the selectedMesh's local space
+                    const newVertexLocalPos = selectedMesh.worldToLocal(newVertexWorldPos.clone());
+
+                    // Update the vertex position in the geometry's attribute
+                    const positions = selectedMesh.geometry.attributes.position;
+                    positions.setXYZ(selectedVertexIndex, newVertexLocalPos.x, newVertexLocalPos.y, newVertexLocalPos.z);
+                    positions.needsUpdate = true; // Mark as needing update
+
+                    // Recalculate normals after vertex position change
+                    selectedMesh.geometry.computeVertexNormals();
+
+                    // Update the highlight sphere's position
+                    if (vertexHighlightsGroup.children.length > 0) {
+                        vertexHighlightsGroup.children[0].position.copy(newVertexWorldPos);
+                    }
+                }
+            });
+
+
+            // Link color picker to material (initially for clock body)
+            colorPicker.addEventListener('input', (event) => {
+                if (selectedMesh && selectedMesh.material) {
+                    selectedMesh.material.color.set(event.target.value);
+                    if (selectedMesh.originalMaterial) {
+                        selectedMesh.originalMaterial.color.set(event.target.value);
+                    }
+                } else if (originalClockModel && originalClockModel.children.length > 0) {
+                    const mainBody = originalClockModel.children.find(child => child.name === 'mainBody');
+                    if (mainBody && mainBody.material) {
+                        mainBody.material.color.set(event.target.value);
+                    }
+                }
+            });
+
+            // Event listener for mesh selection
+            threeDCanvas.addEventListener('click', onCanvasClick, false);
+
+            // Handle window resizing
+            window.addEventListener('resize', onWindowResize);
+            onWindowResize(); // Initial call to set correct size
+            animate(); // Start the animation loop
+
+            // Initialize Edit Mode related globals
+            vertexHighlightsGroup = new THREE.Group();
+            scene.add(vertexHighlightsGroup);
+
+            vertexTransformTarget = new THREE.Object3D(); // Dummy object for TransformControls
+            scene.add(vertexTransformTarget); // Add to scene, but it won't be visible by itself
+        }
+
+        function createClockModel() {
+            const group = new THREE.Group();
+
+            // Main Body Material (accessible for color picker)
+            const mainBodyMaterial = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.3, metalness: 0.2 });
+            const bodyGeometry = new THREE.BoxGeometry(3, 1.5, 1.2);
+            const mainBody = new THREE.Mesh(bodyGeometry, mainBodyMaterial);
+            mainBody.name = 'mainBody'; // Give it a name for selection
+            group.add(mainBody);
+            
+            // Front face (where numbers would be) - darker grey
+            const frontFaceMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 });
+            const frontFaceGeometry = new THREE.BoxGeometry(2.2, 1, 0.1);
+            const frontFace = new THREE.Mesh(frontFaceGeometry, frontFaceMaterial);
+            frontFace.position.z = 0.61; // Slightly in front of the main body
+            frontFace.name = 'frontFace';
+            group.add(frontFace);
+
+            // Side Knob - dark blue
+            const knobMaterial = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.5 });
+            const knobGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 24);
+            const knob = new THREE.Mesh(knobGeometry, knobMaterial);
+            knob.rotation.z = Math.PI / 2; // Rotate to be horizontal
+            knob.position.x = 1.6; // Position on the right side
+            knob.name = 'sideKnob';
+            group.add(knob);
+            
+            // Top Button - orange
+            const buttonMaterial = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 });
+            const buttonGeometry = new THREE.BoxGeometry(1, 0.2, 0.5);
+            const button = new THREE.Mesh(buttonGeometry, buttonMaterial);
+            button.position.y = 0.85; // Position on top
+            button.position.x = -0.8; // Position towards left
+            button.name = 'topButton';
+            group.add(button);
+
+            // ALARM CLOCK sticker (Red background, white text)
+            const alarmClockPlaneGeometry = new THREE.PlaneGeometry(1.5, 0.3);
+            const alarmClockMaterial = new THREE.MeshBasicMaterial({ color: 0xdc2626 }); // Red
+            const alarmClockPlane = new THREE.Mesh(alarmClockPlaneGeometry, alarmClockMaterial);
+            alarmClockPlane.position.set(0.5, 0.85, 0.61); // Position on top-front
+            alarmClockPlane.name = 'alarmClockSticker';
+            group.add(alarmClockPlane);
+
+            // FUNK sticker (White background, black text, green border)
+            const funkPlaneGeometry = new THREE.PlaneGeometry(0.8, 0.4);
+            const funkMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White
+            const funkPlane = new THREE.Mesh(funkPlaneGeometry, funkMaterial);
+            funkPlane.rotation.y = Math.PI / 2; // Rotate to be on the side
+            funkPlane.position.set(1.51, -0.5, 0.5); // Position on the right side
+            funkPlane.name = 'funkSticker';
+            group.add(funkPlane);
+
+            // Add a simple border for FUNK sticker (simplified with thin boxes)
+            const funkBorderMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); // Green
+            const borderThickness = 0.02;
+
+            // Top border
+            const topBorder = new THREE.Mesh(new THREE.BoxGeometry(0.8 + borderThickness * 2, borderThickness, borderThickness), funkBorderMaterial);
+            topBorder.rotation.y = Math.PI / 2;
+            topBorder.position.set(1.51, -0.5 + 0.2 + borderThickness / 2, 0.5);
+            topBorder.name = 'funkBorderTop';
+            group.add(topBorder);
+
+            // Bottom border
+            const bottomBorder = new THREE.Mesh(new THREE.BoxGeometry(0.8 + borderThickness * 2, borderThickness, borderThickness), funkBorderMaterial);
+            bottomBorder.rotation.y = Math.PI / 2;
+            bottomBorder.position.set(1.51, -0.5 - 0.2 - borderThickness / 2, 0.5);
+            bottomBorder.name = 'funkBorderBottom';
+            group.add(bottomBorder);
+
+            // Left border
+            const leftBorder = new THREE.Mesh(new THREE.BoxGeometry(borderThickness, 0.4 + borderThickness * 2, borderThickness), funkBorderMaterial);
+            leftBorder.rotation.y = Math.PI / 2;
+            leftBorder.position.set(1.51, -0.5, 0.5 - 0.4 - borderThickness / 2);
+            leftBorder.name = 'funkBorderLeft';
+            group.add(leftBorder);
+
+            // Right border
+            const rightBorder = new THREE.Mesh(new THREE.BoxGeometry(borderThickness, 0.4 + borderThickness * 2, borderThickness), funkBorderMaterial);
+            rightBorder.rotation.y = Math.PI / 2;
+            rightBorder.position.set(1.51, -0.5, 0.5 + 0.4 + borderThickness / 2);
+            rightBorder.name = 'funkBorderRight';
+            group.add(rightBorder);
+
+
+            // Simulate "10 22 PM" digits (simplified with planes)
+            const digitMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White for digits
+            const pmMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff }); // White for PM
+
+            // "10"
+            const digit1_0_Geometry = new THREE.PlaneGeometry(0.3, 0.8);
+            const digit1_0 = new THREE.Mesh(digit1_0_Geometry, digitMaterial);
+            digit1_0.position.set(-0.8, 0.1, 0.62);
+            digit1_0.name = 'digit1_0';
+            group.add(digit1_0);
+
+            const digit1_1_Geometry = new THREE.PlaneGeometry(0.3, 0.8);
+            const digit1_1 = new THREE.Mesh(digit1_1_Geometry, digitMaterial);
+            digit1_1.position.set(-0.4, 0.1, 0.62);
+            digit1_1.name = 'digit1_1';
+            group.add(digit1_1);
+
+            // "22"
+            const digit2_0_Geometry = new THREE.PlaneGeometry(0.3, 0.8);
+            const digit2_0 = new THREE.Mesh(digit2_0_Geometry, digitMaterial);
+            digit2_0.position.set(0.4, 0.1, 0.62);
+            digit2_0.name = 'digit2_0';
+            group.add(digit2_0);
+
+            const digit2_1_Geometry = new THREE.PlaneGeometry(0.3, 0.8);
+            const digit2_1 = new THREE.Mesh(digit2_1_Geometry, digitMaterial);
+            digit2_1.position.set(0.8, 0.1, 0.62);
+            digit2_1.name = 'digit2_1';
+            group.add(digit2_1);
+
+            // "PM"
+            const pmGeometry = new THREE.PlaneGeometry(0.4, 0.2);
+            const pm = new THREE.Mesh(pmGeometry, pmMaterial);
+            pm.position.set(1.2, -0.4, 0.62);
+            pm.name = 'pmIndicator';
+            group.add(pm);
+
+            return group;
+        }
+
+        // --- GLTF Model Loading ---
+        function loadGLTFModel(file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const loader = new GLTFLoader();
+                loader.parse(event.target.result, '', (gltf) => {
+                    // Remove previous model if any
+                    if (loadedGLTFModel) {
+                        scene.remove(loadedGLTFModel);
+                        loadedGLTFModel.traverse(object => {
+                            if (object.geometry) object.geometry.dispose();
+                            if (object.material) {
+                                if (Array.isArray(object.material)) {
+                                    object.material.forEach(m => m.dispose());
+                                } else {
+                                    object.material.dispose();
+                                }
+                            }
+                        });
+                    }
+                    if (originalClockModel) {
+                        scene.remove(originalClockModel);
+                        originalClockModel.traverse(object => {
+                            if (object.geometry) object.geometry.dispose();
+                            if (object.material) {
+                                if (Array.isArray(object.material)) {
+                                    object.material.forEach(m => m.dispose());
+                                } else {
+                                    object.material.dispose();
+                                }
+                            }
+                        });
+                    }
+
+                    loadedGLTFModel = gltf.scene;
+                    loadedGLTFModel.scale.set(1, 1, 1); // Adjust scale as needed
+                    loadedGLTFModel.position.set(0, 0, 0); // Center the model
+                    scene.add(loadedGLTFModel);
+
+                    // Attach transform controls to the new model
+                    transformControls.attach(loadedGLTFModel);
+                    selectedMesh = null; // Deselect any previously selected mesh
+                    console.log('GLTF model loaded:', gltf);
+                    updateViewStatus(currentView, 'GLTF Model');
+                    drawUVsForSelectedMesh(); // Attempt to draw UVs if in UV editing view
+                }, (xhr) => {
+                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                }, (error) => {
+                    console.error('An error happened during GLTF loading:', error);
+                    alert('Failed to load GLTF model. Check console for details.');
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // --- Mesh Selection & Vertex Picking ---
+        function onCanvasClick(event) {
+            const canvasRect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - canvasRect.left) / canvasRect.width) * 2 - 1;
+            mouse.y = -((event.clientY - canvasRect.top) / canvasRect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            if (currentMode === 'object') {
+                let intersects = [];
+                let targetObject = loadedGLTFModel || originalClockModel;
+                if (targetObject) {
+                    // Collect all meshes in the target object for intersection testing
+                    const meshes = [];
+                    targetObject.traverse((obj) => {
+                        if (obj.isMesh) {
+                            meshes.push(obj);
+                        }
+                    });
+                    intersects = raycaster.intersectObjects(meshes, true);
+                }
+                
+                // Reset previous selection highlight
+                if (selectedMesh) {
+                    if (selectedMesh.originalMaterial) {
+                        selectedMesh.material = selectedMesh.originalMaterial;
+                        delete selectedMesh.originalMaterial;
+                    }
+                    selectedMesh = null;
+                }
+
+                if (intersects.length > 0) {
+                    const intersect = intersects[0];
+                    if (intersect.object.isMesh) {
+                        selectedMesh = intersect.object;
+                        selectedMesh.originalMaterial = selectedMesh.material; 
+                        selectedMesh.material = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.5 });
+                        console.log('Selected Mesh (Object Mode):', selectedMesh.name || selectedMesh.uuid);
+                        
+                        transformControls.attach(selectedMesh);
+                        updateViewStatus(currentView, selectedMesh.name || 'Selected Object');
+                        drawUVsForSelectedMesh();
+                    }
+                } else {
+                    // Clicked empty space, deselect
+                    transformControls.detach();
+                    selectedMesh = null;
+                    updateViewStatus(currentView, loadedGLTFModel ? 'GLTF Model' : 'Default Clock');
+                    drawUVsForSelectedMesh();
+                }
+            } else if (currentMode === 'edit') {
+                // Edit Mode: Vertex Selection
+                clearVertexHighlights();
+                selectedVertexIndex = -1; // Reset single selected vertex
+                transformControls.detach(); // Detach from previous target
+
+                let targetMeshForEdit = selectedMesh; // Prefer the already selected mesh
+                if (!targetMeshForEdit) {
+                    // If no mesh is explicitly selected in object mode, try to use the main loaded model
+                    targetMeshForEdit = loadedGLTFModel || originalClockModel;
+                }
+
+                if (targetMeshForEdit && targetMeshForEdit.geometry && targetMeshForEdit.geometry.isBufferGeometry && targetMeshForEdit.geometry.attributes.position) {
+                    // Create a temporary Points object for accurate vertex picking
+                    const tempPointsGeometry = targetMeshForEdit.geometry;
+                    const tempPointsMaterial = new THREE.PointsMaterial({ size: 0.1, color: 0x00ff00, visible: false }); // Invisible points for picking
+                    const tempPoints = new THREE.Points(tempPointsGeometry, tempPointsMaterial);
+                    tempPoints.matrixWorld = targetMeshForEdit.matrixWorld; // Align with mesh's world transform
+                    
+                    // Add tempPoints to scene for raycasting, then remove immediately
+                    scene.add(tempPoints);
+                    const intersects = raycaster.intersectObject(tempPoints);
+                    scene.remove(tempPoints);
+
+                    if (intersects.length > 0) {
+                        const pickedIndex = intersects[0].index; // Get the index of the picked vertex
+                        selectedVertexIndex = pickedIndex;
+                        selectedMesh = targetMeshForEdit; // Ensure selectedMesh is set for manipulation
+
+                        // Highlight the vertex
+                        const vertexWorldPos = new THREE.Vector3();
+                        vertexWorldPos.fromBufferAttribute(selectedMesh.geometry.attributes.position, selectedVertexIndex);
+                        selectedMesh.localToWorld(vertexWorldPos); // Convert to world coordinates
+                        
+                        const sphereGeometry = new THREE.SphereGeometry(0.05, 8, 8); // Small sphere
+                        const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff }); // Magenta highlight
+                        const highlightSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                        highlightSphere.position.copy(vertexWorldPos);
+                        vertexHighlightsGroup.add(highlightSphere);
+
+                        // Attach transform controls to the dummy object at the picked vertex's world position
+                        vertexTransformTarget.position.copy(vertexWorldPos);
+                        transformControls.attach(vertexTransformTarget);
+                        transformControls.setMode('translate'); // Default to translate for vertex
+                        console.log('Selected Vertex (Edit Mode): Index', selectedVertexIndex);
+                        updateViewStatus(currentView, `Vertex ${selectedVertexIndex}`);
+
+                    } else {
+                        // No vertex picked, deselect everything in edit mode
+                        selectedMesh = null;
+                        updateViewStatus(currentView, 'No Vertex Selected');
+                    }
+                } else {
+                    // No mesh available or mesh geometry is not BufferGeometry
+                    alert("Please load a model or select an object in Object Mode first to edit vertices. Ensure it has BufferGeometry.");
+                    selectedMesh = null; // Clear any lingering selection
+                    updateViewStatus(currentView, 'No Editable Object');
+                }
+            }
+        }
+
+        // --- Camera Focus Function ---
+        function focusCameraOnSelected() {
+            let targetObject = selectedMesh || loadedGLTFModel || originalClockModel;
+
+            if (targetObject) {
+                const box = new THREE.Box3().setFromObject(targetObject);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+
+                // Update orbit controls target to the center of the selected object
+                orbitControls.target.copy(center);
+
+                // Calculate a suitable distance to view the object
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180); // Convert to radians
+                let cameraDistance = maxDim / (2 * Math.tan(fov / 2));
+
+                // Add some padding
+                cameraDistance *= 1.5; 
+
+                // Move camera to new position while maintaining current orbit angle
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                camera.position.copy(direction.multiplyScalar(-cameraDistance).add(center));
+                camera.updateProjectionMatrix();
+                orbitControls.update();
+            }
+        }
+
+        // --- Orthographic View Functions ---
+        function setOrthographicView(viewType) {
+            const currentTarget = orbitControls.target.clone();
+            const distance = camera.position.distanceTo(currentTarget); // Maintain current distance
+
+            // Switch to OrthographicCamera if not already
+            if (!(camera instanceof THREE.OrthographicCamera)) {
+                const aspect = threeDCanvas.clientWidth / threeDCanvas.clientHeight;
+                const frustumSize = 6; // Arbitrary frustum size, adjust as needed
+                camera = new THREE.OrthographicCamera(frustumSize * aspect / -2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0.1, 1000);
+                orbitControls.object = camera; // Update orbit controls with new camera
+                transformControls.camera = camera; // Update transform controls with new camera
+            }
+
+            switch (viewType) {
+                case 'top':
+                    camera.position.set(currentTarget.x, currentTarget.y + distance, currentTarget.z);
+                    camera.up.set(0, 0, -1); // Z-axis up
+                    break;
+                case 'bottom':
+                    camera.position.set(currentTarget.x, currentTarget.y - distance, currentTarget.z);
+                    camera.up.set(0, 0, 1);
+                    break;
+                case 'front':
+                    camera.position.set(currentTarget.x, currentTarget.y, currentTarget.z + distance);
+                    camera.up.set(0, 1, 0); // Y-axis up
+                    break;
+                case 'back':
+                    camera.position.set(currentTarget.x, currentTarget.y, currentTarget.z - distance);
+                    camera.up.set(0, 1, 0);
+                    break;
+                case 'right':
+                    camera.position.set(currentTarget.x + distance, currentTarget.y, currentTarget.z);
+                    camera.up.set(0, 1, 0);
+                    break;
+                case 'left':
+                    camera.position.set(currentTarget.x - distance, currentTarget.y, currentTarget.z);
+                    camera.up.set(0, 1, 0);
+                    break;
+            }
+
+            camera.lookAt(currentTarget);
+            camera.updateProjectionMatrix();
+            orbitControls.update(); // Update controls to reflect new camera position/target
+            cameraViewSelect.value = 'orthographic'; // Update dropdown
+            updateViewStatus(currentView, selectedMesh ? (selectedMesh.name || 'Selected Object') : (loadedGLTFModel ? 'GLTF Model' : 'Default Clock'));
+        }
+
+        function invertOrthographicView() {
+            const currentPosition = camera.position.clone();
+            const currentTarget = orbitControls.target.clone();
+            const vectorToCamera = currentPosition.sub(currentTarget); // Vector from target to camera
+
+            // Invert the vector
+            vectorToCamera.negate();
+
+            // Set new camera position
+            camera.position.copy(currentTarget.clone().add(vectorToCamera));
+            camera.lookAt(currentTarget);
+            camera.updateProjectionMatrix();
+            orbitControls.update();
+            updateViewStatus(currentView, selectedMesh ? (selectedMesh.name || 'Selected Object') : (loadedGLTFModel ? 'GLTF Model' : 'Default Clock'));
+        }
+
+
+        // --- Texture Application (for general texture, not PBR maps) ---
+        function applyTextureToSelectedMesh(file) {
+            // Ensure we have a selected mesh and its original material to apply the texture to
+            if (!selectedMesh || !selectedMesh.originalMaterial) {
+                console.warn("No mesh selected or selected mesh has no original material to apply texture to.");
+                alert("Please select a mesh first to apply a texture.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.load(event.target.result, (texture) => {
+                    // Apply texture to the ORIGINAL material
+                    if (selectedMesh.originalMaterial.isMeshStandardMaterial || selectedMesh.originalMaterial.isMeshBasicMaterial) {
+                        selectedMesh.originalMaterial.map = texture;
+                        selectedMesh.originalMaterial.needsUpdate = true; // Important to update the material
+
+                        console.log('Texture applied to original material of:', selectedMesh.name || selectedMesh.uuid);
+                    } else {
+                        console.warn("Selected mesh's original material does not support texture maps directly. Creating a new MeshStandardMaterial for it.");
+                        // If the original material doesn't support maps, replace it with one that does
+                        const newMaterial = new THREE.MeshStandardMaterial({ map: texture });
+                        selectedMesh.originalMaterial.dispose(); // Clean up old material
+                        selectedMesh.originalMaterial = newMaterial;
+                    }
+                    // If currently highlighted, ensure the highlight material is also updated or removed
+                    if (selectedMesh.material !== selectedMesh.originalMaterial) {
+                        selectedMesh.material = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.5 }); // Re-apply highlight
+                    }
+                    selectedMesh.material.needsUpdate = true;
+                }, undefined, (error) => {
+                    console.error('Error loading texture:', error);
+                    alert('Failed to load texture. Check console for details.');
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Individual PBR Map Application ---
+        function applyIndividualPBRMaps() {
+            if (!selectedMesh || !selectedMesh.originalMaterial) {
+                alert("Please select a mesh first to apply PBR maps.");
+                return;
+            }
+
+            const textureLoader = new THREE.TextureLoader();
+            const material = selectedMesh.originalMaterial;
+
+            const loadAndApplyTexture = (inputElement, mapProperty, isNormalMap = false) => {
+                const file = inputElement.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        textureLoader.load(event.target.result, (texture) => {
+                            material[mapProperty] = texture;
+                            material.needsUpdate = true;
+                            if (isNormalMap) {
+                                material.normalScale.set(1, 1); // Default normal scale
+                            }
+                            console.log(`${mapProperty} applied.`);
+                        }, undefined, (error) => {
+                            console.error(`Error loading ${mapProperty}:`, error);
+                            alert(`Failed to load ${mapProperty}. Check console for details.`);
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    // If no file selected, clear the map
+                    if (material[mapProperty]) {
+                        material[mapProperty].dispose();
+                        material[mapProperty] = null;
+                        material.needsUpdate = true;
+                        console.log(`${mapProperty} cleared.`);
+                    }
+                }
+            };
+
+            loadAndApplyTexture(albedoMapInput, 'map');
+            loadAndApplyTexture(normalMapInput, 'normalMap', true);
+            loadAndApplyTexture(roughnessMapInput, 'roughnessMap');
+            loadAndApplyTexture(metalnessMapInput, 'metalnessMap');
+            loadAndApplyTexture(aoMapInput, 'aoMap');
+        }
+
+        // Event listeners for individual PBR map inputs to show previews
+        const pbrMapInputs = [
+            { input: albedoMapInput, preview: albedoMapPreview },
+            { input: normalMapInput, preview: normalMapPreview },
+            { input: roughnessMapInput, preview: roughnessMapPreview },
+            { input: metalnessMapInput, preview: metalnessMapPreview },
+            { input: aoMapInput, preview: aoMapPreview },
+            { input: pbrBaseImageInput, preview: pbrBaseImagePreview } // For AI base image preview
+        ];
+
+        pbrMapInputs.forEach(({ input, preview }) => {
+            input.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.src = `https://placehold.co/64x64/1a1a1a/52525b?text=${preview.id.split('-')[0].slice(0,2).toUpperCase()}`; // Reset to placeholder
+                }
+            });
+        });
+
+        applyPBRMapsBtn.addEventListener('click', applyIndividualPBRMaps);
+
+        // --- AI PBR Generation Simulation ---
+        generatePBR_AI_Btn.addEventListener('click', async () => {
+            if (!selectedMesh || !selectedMesh.originalMaterial) {
+                alert("Please select a mesh first to apply generated PBR maps.");
+                return;
+            }
+
+            generatePBR_AI_Btn.disabled = true;
+            generatePBRSpinner.classList.remove('hidden');
+
+            const material = selectedMesh.originalMaterial;
+            const textureLoader = new THREE.TextureLoader();
+
+            const generateAndApplyMap = async (prompt, mapProperty, previewElement) => {
+                try {
+                    const payload = { instances: { prompt: prompt }, parameters: { "sampleCount": 1} };
+                    const apiKey = ""; // Canvas will provide this at runtime
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error(`HTTP error! Status: ${response.status}, Text: ${errorText}`);
+                        previewElement.src = `https://placehold.co/64x64/ff0000/ffffff?text=Err`; // Error placeholder
+                        throw new Error(`HTTP error: ${response.status} ${response.statusText}`); 
+                    }
+
+                    const result = await response.json();
+
+                    if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                        const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                        previewElement.src = imageUrl; // Display generated image
+
+                        textureLoader.load(imageUrl, (texture) => {
+                            material[mapProperty] = texture;
+                            material.needsUpdate = true;
+                            if (mapProperty === 'normalMap') {
+                                material.normalScale.set(1, 1);
+                            }
+                            console.log(`Generated ${mapProperty} applied.`);
+                        });
+                    } else {
+                        console.error(`Failed to generate ${mapProperty}: Unexpected API response structure`, result);
+                        previewElement.src = `https://placehold.co/64x64/ff0000/ffffff?text=Err`; // Error placeholder
+                    }
+                } catch (error) {
+                    console.error(`Error during fetch or JSON parsing for ${mapProperty}:`, error);
+                    previewElement.src = `https://placehold.co/64x64/ff0000/ffffff?text=Err`; // Error placeholder
+                }
+            };
+
+            // Clear previous generated previews and maps
+            const generatedPreviews = [generatedAlbedo, generatedNormal, generatedRoughness, generatedMetalness, generatedAo];
+            generatedPreviews.forEach(img => img.src = `https://placehold.co/64x64/1a1a1a/52525b?text=${img.id.replace('generated-', '').slice(0,2).toUpperCase()}`);
+            material.map = null;
+            material.normalMap = null;
+            material.roughnessMap = null;
+            material.metalnessMap = null;
+            material.aoMap = null;
+            material.needsUpdate = true;
+
+
+            // Define prompts for each PBR map
+            const basePrompt = "high-resolution, seamless, realistic, "; 
+            await Promise.all([
+                generateAndApplyMap(basePrompt + "albedo map of weathered stone texture", 'map', generatedAlbedo),
+                generateAndApplyMap(basePrompt + "normal map of weathered stone texture, grayscale, high contrast", 'normalMap', generatedNormal),
+                generateAndApplyMap(basePrompt + "roughness map of weathered stone texture, grayscale", 'roughnessMap', generatedRoughness),
+                generateAndApplyMap(basePrompt + "metalness map of weathered stone texture, grayscale, non-metallic", 'metalnessMap', generatedMetalness),
+                generateAndApplyMap(basePrompt + "ambient occlusion map of weathered stone texture, grayscale", 'aoMap', generatedAo)
+            ]);
+
+            generatePBR_AI_Btn.disabled = false;
+            generatePBRSpinner.classList.add('hidden');
+            alert("PBR map generation simulation complete. Note: This is a conceptual demonstration using text-to-image AI. A real 'PBR from single image' feature would require a different AI model.");
+        });
+
+
+        // --- UV Editor Functions ---
+        function initUVEditor() {
+            uvCtx = uvEditorCanvas.getContext('2d');
+            resizeUVEditorCanvas(); // Initial resize
+            window.addEventListener('resize', resizeUVEditorCanvas);
+        }
+
+        function resizeUVEditorCanvas() {
+            const parent = uvEditorCanvas.parentElement;
+            uvEditorCanvas.width = parent.clientWidth;
+            uvEditorCanvas.height = parent.clientHeight;
+            drawUVsForSelectedMesh(); // Redraw on resize
+        }
+
+        function drawUVsForSelectedMesh() {
+            uvCtx.clearRect(0, 0, uvEditorCanvas.width, uvEditorCanvas.height);
+            drawCheckerboard(uvCtx, uvEditorCanvas.width, uvEditorCanvas.height, 20); // Draw checkerboard background
+
+            if (!selectedMesh || !selectedMesh.geometry || !selectedMesh.geometry.attributes.uv) {
+                uvEditorMessage.classList.remove('hidden');
+                return;
+            }
+            uvEditorMessage.classList.add('hidden');
+
+            const uvs = selectedMesh.geometry.attributes.uv.array;
+            const indices = selectedMesh.geometry.index ? selectedMesh.geometry.index.array : Array.from({ length: selectedMesh.geometry.attributes.position.count }, (v, i) => i);
+
+            uvCtx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; // White lines
+            uvCtx.lineWidth = 1;
+
+            const width = uvEditorCanvas.width;
+            const height = uvEditorCanvas.height;
+
+            // Draw triangles for each face
+            for (let i = 0; i < indices.length; i += 3) {
+                const i1 = indices[i];
+                const i2 = indices[i + 1];
+                const i3 = indices[i + 2];
+
+                const uv1 = new THREE.Vector2(uvs[i1 * 2], uvs[i1 * 2 + 1]);
+                const uv2 = new THREE.Vector2(uvs[i2 * 2], uvs[i2 * 2 + 1]);
+                const uv3 = new THREE.Vector2(uvs[i3 * 2], uvs[i3 * 2 + 1]);
+
+                uvCtx.beginPath();
+                uvCtx.moveTo(uv1.x * width, (1 - uv1.y) * height); // 1-y because UVs are usually bottom-up
+                uvCtx.lineTo(uv2.x * width, (1 - uv2.y) * height);
+                uvCtx.lineTo(uv3.x * width, (1 - uv3.y) * height);
+                uvCtx.closePath();
+                uvCtx.stroke();
+            }
+
+            // Draw UV points
+            uvCtx.fillStyle = 'yellow'; // Yellow points
+            for (let i = 0; i < uvs.length; i += 2) {
+                const uvX = uvs[i];
+                const uvY = uvs[i + 1];
+                uvCtx.beginPath();
+                uvCtx.arc(uvX * width, (1 - uvY) * height, 2, 0, Math.PI * 2); // Radius 2
+                uvCtx.fill();
+            }
+        }
+
+        function drawCheckerboard(ctx, width, height, cellSize) {
+            const lightColor = '#222222'; // Dark gray
+            const darkColor = '#1a1a1a'; // Even darker gray
+
+            for (let y = 0; y < height; y += cellSize) {
+                for (let x = 0; x < width; x += cellSize) {
+                    ctx.fillStyle = ((Math.floor(x / cellSize) + Math.floor(y / cellSize)) % 2 === 0) ? lightColor : darkColor;
+                    ctx.fillRect(x, y, cellSize, cellSize);
+                }
+            }
+        }
+
+        function onWindowResize() {
+            // Resize 3D canvas
+            const threeDViewRect = modellingViewDiv.getBoundingClientRect();
+            renderer.setSize(threeDViewRect.width, threeDViewRect.height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            if (camera instanceof THREE.PerspectiveCamera) {
+                camera.aspect = threeDViewRect.width / threeDViewRect.height;
+                camera.updateProjectionMatrix();
+            } else { // OrthographicCamera
+                const aspect = threeDViewRect.width / threeDViewRect.height;
+                const frustumSize = 6;
+                camera.left = -frustumSize * aspect / 2;
+                camera.right = frustumSize * aspect / 2;
+                camera.top = frustumSize / 2;
+                camera.bottom = -frustumSize / 2;
+                camera.updateProjectionMatrix();
+            }
+
+            // Resize UV Editor canvas if it's visible
+            if (currentView === 'uv-editing') {
+                resizeUVEditorCanvas();
+            }
+        }
+
+        function animate() {
+            // This function is only called when currentView is 'modelling'
+            orbitControls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- Mode Switching Logic ---
+        function setMode(mode) {
+            if (currentMode === mode) return; // No change needed
+
+            currentMode = mode;
+            console.log(`Switched to ${mode} mode.`);
+
+            // Update UI buttons
+            objectModeBtn.classList.toggle('bg-blue-600', mode === 'object');
+            objectModeBtn.classList.toggle('text-white', mode === 'object');
+            objectModeBtn.classList.toggle('hover:bg-zinc-700', mode === 'edit');
+            objectModeBtn.classList.toggle('text-zinc-400', mode === 'edit');
+
+            editModeBtn.classList.toggle('bg-blue-600', mode === 'edit');
+            editModeBtn.classList.toggle('text-white', mode === 'edit');
+            editModeBtn.classList.toggle('hover:bg-zinc-700', mode === 'object');
+            editModeBtn.classList.toggle('text-zinc-400', mode === 'object');
+
+            // Clear any active vertex selections/highlights when switching modes
+            clearVertexHighlights();
+            selectedVertexIndex = -1;
+            transformControls.detach(); // Detach from any vertex target
+
+            // Re-attach transform controls based on the mode and selection
+            if (mode === 'object') {
+                if (selectedMesh) {
+                    // If a mesh was selected in object mode, re-attach controls to it
+                    transformControls.attach(selectedMesh);
+                } else if (loadedGLTFModel) {
+                    // If a GLTF model was loaded, attach to it
+                    transformControls.attach(loadedGLTFModel);
+                } else {
+                    // Otherwise, attach to the default clock model
+                    transformControls.attach(originalClockModel);
+                }
+                transformControls.enabled = true; // Ensure controls are enabled
+                setTransformMode('rotate', rotateBtn); // Reset to default transform mode for objects
+                updateViewStatus(currentView, selectedMesh ? (selectedMesh.name || 'Selected Object') : (loadedGLTFModel ? 'GLTF Model' : 'Default Clock'));
+            } else { // 'edit' mode
+                // In edit mode, transform controls will be attached only when a vertex is selected.
+                // It remains detached initially.
+                transformControls.enabled = true; // Still enable them to be ready for vertex selection
+                updateViewStatus(currentView, 'No Vertex Selected');
+            }
+        }
+
+        function toggleEditMode() {
+            if (currentMode === 'object') {
+                setMode('edit');
+            } else {
+                setMode('object');
+            }
+        }
+
+        objectModeBtn.addEventListener('click', () => setMode('object'));
+        editModeBtn.addEventListener('click', () => setMode('edit'));
+
+        function clearVertexHighlights() {
+            while (vertexHighlightsGroup.children.length > 0) {
+                const child = vertexHighlightsGroup.children[0];
+                child.geometry.dispose();
+                child.material.dispose();
+                vertexHighlightsGroup.remove(child);
+            }
+        }
+
+        // --- Rendering Logic ---
+        startPathtracingBtn.addEventListener('click', startPathtracingRender);
+        backToModellingBtn.addEventListener('click', showModellingView);
+
+        async function startPathtracingRender() {
+            showRenderingView(); // Switch to the rendering view
+            renderLoadingSpinner.classList.remove('hidden');
+            renderMessage.classList.remove('hidden');
+            renderedImage.classList.add('hidden');
+            backToModellingBtn.classList.add('hidden');
+
+            try {
+                // Simulate sending a prompt to an AI for a photorealistic render
+                const renderPrompt = "photorealistic render of a modern alarm clock, studio lighting, soft shadows, detailed, 8k, ray tracing, cinematic, hyperrealistic";
+                const payload = { instances: { prompt: renderPrompt }, parameters: { "sampleCount": 1} };
+                const apiKey = ""; // Canvas will provide this at runtime
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`HTTP error! Status: ${response.status}, Text: ${errorText}`);
+                    renderMessage.textContent = `Rendering failed: ${response.statusText}`;
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    renderedImage.src = imageUrl;
+                    renderedImage.classList.remove('hidden');
+                    renderMessage.classList.add('hidden');
+                    renderLoadingSpinner.classList.add('hidden');
+                    backToModellingBtn.classList.remove('hidden');
+                    console.log("Simulated pathtracing render complete.");
+                } else {
+                    renderMessage.textContent = "Rendering failed: No image data received.";
+                    console.error("Failed to generate image: Unexpected API response structure", result);
+                }
+            } catch (error) {
+                renderMessage.textContent = `Rendering failed: ${error.message}`;
+                console.error("Error during simulated pathtracing render:", error);
+            } finally {
+                renderLoadingSpinner.classList.add('hidden');
+                // Ensure message is visible if there was an error, otherwise hide it.
+                if (renderedImage.classList.contains('hidden')) {
+                     renderMessage.classList.remove('hidden');
+                }
+            }
+        }
+
+
+        // --- Initialization on Window Load ---
+        window.onload = () => {
+            initThreeJS();
+            initUVEditor(); // Initialize UV editor canvas context
+            showModellingView(); // Start in modelling view
+            updateViewStatus(currentView, 'Default Clock'); // Set initial status
+
+            // Set initial mode button state
+            setMode('object'); // Ensure object mode is active on load
+        };
+    </script>
+</body>
+</html>
+

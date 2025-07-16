@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion Clone - Fading Lights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --notion-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+            --notion-peach: rgba(253, 235, 236, 0.3);
+            --notion-gray: rgba(235, 236, 237, 0.3);
+            --notion-blue: rgba(231, 243, 248, 0.6);
+            --notion-red: rgba(253, 235, 236, 0.6);
+            --notion-yellow: rgba(251, 243, 219, 0.6);
+            --notion-green: rgba(237, 243, 236, 0.6);
+            --notion-purple: rgba(244, 240, 247, 0.8);
+            --notion-pink: rgba(249, 238, 243, 0.8);
+            --notion-brown: rgba(241, 237, 234, 0.8);
+        }
+        
+        body {
+            font-family: var(--notion-font);
+            background-color: white;
+            color: rgb(55, 53, 47);
+        }
+        
+        .notion-page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding-top: 50px;
+            padding-bottom: 100px;
+        }
+        
+        .notion-title {
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            padding-bottom: 12px;
+            caret-color: rgb(55, 53, 47);
+        }
+        
+        [contenteditable] {
+            outline: none;
+        }
+        
+        .notion-h1 {
+            font-size: 1.875rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            caret-color: rgb(55, 53, 47);
+        }
+        
+        .notion-h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            caret-color: rgb(55, 53, 47);
+        }
+        
+        .notion-h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            caret-color: rgb(55, 53, 47);
+        }
+        
+        .notion-text {
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+            caret-color: rgb(55, 53, 47);
+            position: relative;
+            padding-left: 24px;
+            min-height: 24px;
+        }
+        
+        .notion-text:hover .notion-line-handle {
+            opacity: 1;
+        }
+        
+        .notion-list {
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .notion-list li {
+            margin-bottom: 0.25rem;
+            position: relative;
+        }
+        
+        .notion-list.list-decimal li::before {
+            content: counter(list-item) ".";
+            position: absolute;
+            left: -1.5rem;
+            width: 1.5rem;
+            text-align: right;
+        }
+        
+        .notion-list.list-disc li::before {
+            content: "•";
+            position: absolute;
+            left: -1.5rem;
+            width: 1.5rem;
+            text-align: center;
+        }
+        
+        .notion-bold {
+            font-weight: 600;
+        }
+        
+        .notion-italic {
+            font-style: italic;
+        }
+        
+        .notion-callout {
+            background-color: var(--notion-blue);
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            display: flex;
+        }
+        
+        .notion-divider {
+            border: none;
+            border-top: 1px solid rgba(55, 53, 47, 0.16);
+            margin: 0.5rem 0;
+        }
+        
+        .notion-toggle {
+            width: 100%;
+        }
+        
+        .notion-toggle-summary {
+            cursor: pointer;
+            list-style: none;
+        }
+        
+        .notion-toggle-summary::-webkit-details-marker {
+            display: none;
+        }
+        
+        .notion-sidebar {
+            background-color: white;
+            border-right: 1px solid rgba(55, 53, 47, 0.16);
+        }
+        
+        .notion-topbar {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(55, 53, 47, 0.16);
+        }
+        
+        .notion-icon {
+            color: rgba(55, 53, 47, 0.4);
+        }
+        
+        .notion-link {
+            color: rgba(55, 53, 47, 0.6);
+            text-decoration: underline;
+        }
+        
+        .notion-link:hover {
+            color: rgba(55, 53, 47, 0.8);
+        }
+        
+        .notion-bullet {
+            color: rgba(55, 53, 47, 0.4);
+            margin-right: 4px;
+        }
+        
+        .notion-hover:hover {
+            background-color: rgba(55, 53, 47, 0.08);
+        }
+        
+        .notion-placeholder::before {
+            content: attr(data-placeholder);
+            color: rgba(55, 53, 47, 0.4);
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .notion-badge {
+            background-color: rgba(206, 205, 202, 0.5);
+            border-radius: 3px;
+            padding: 0 4px;
+            font-size: 11px;
+            line-height: 16px;
+            color: rgb(55, 53, 47);
+        }
+        
+        .notion-popup {
+            background-color: white;
+            border: 1px solid rgba(55, 53, 47, 0.16);
+            border-radius: 6px;
+            box-shadow: rgba(15, 15, 15, 0.05) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 3px 6px, rgba(15, 15, 15, 0.2) 0px 9px 24px;
+        }
+        
+        .notion-selected {
+            background-color: rgba(55, 53, 47, 0.08);
+            border-radius: 3px;
+        }
+        
+        .notion-line-handle {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 24px;
+            height: 24px;
+            opacity: 0;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(55, 53, 47, 0.3);
+        }
+        
+        .notion-line-handle:hover {
+            color: rgba(55, 53, 47, 0.6);
+        }
+        
+        .notion-line-menu {
+            position: absolute;
+            left: 24px;
+            top: 0;
+            background-color: white;
+            border: 1px solid rgba(55, 53, 47, 0.16);
+            border-radius: 6px;
+            box-shadow: rgba(15, 15, 15, 0.05) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 3px 6px, rgba(15, 15, 15, 0.2) 0px 9px 24px;
+            z-index: 40;
+            display: none;
+        }
+        
+        .notion-line-menu-item {
+            padding: 6px 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .notion-line-menu-item:hover {
+            background-color: rgba(55, 53, 47, 0.08);
+        }
+        
+        .dragging {
+            opacity: 0.5;
+            background-color: rgba(55, 53, 47, 0.08);
+        }
+        
+        .drop-target {
+            border-top: 2px solid rgba(55, 53, 47, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <!-- Notion-like sidebar -->
+    <div class="fixed left-0 top-0 bottom-0 w-64 notion-sidebar hidden md:block p-4 z-10">
+        <div class="flex items-center mb-6">
+            <div class="w-7 h-7 bg-gray-200 rounded flex items-center justify-center text-gray-600 mr-2 font-medium">G</div>
+            <span class="font-medium truncate">Geovane Jeff's N...</span>
+        </div>
+
+        <div class="mb-4">
+            <div class="flex items-center py-1 px-2 rounded notion-hover cursor-pointer">
+                <i class="fas fa-search mr-2 notion-icon"></i>
+                <span>Search</span>
+            </div>
+            <div class="flex items-center py-1 px-2 rounded notion-hover cursor-pointer">
+                <i class="fas fa-home mr-2 notion-icon"></i>
+                <span>Home</span>
+                <span class="notion-badge ml-2">New</span>
+            </div>
+            <div class="flex items-center py-1 px-2 rounded notion-hover cursor-pointer">
+                <i class="fas fa-inbox mr-2 notion-icon"></i>
+                <span>Inbox</span>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Private</div>
+            <div class="flex items-center py-1 px-2 rounded notion-selected cursor-pointer">
+                <i class="fas fa-lock mr-2 notion-icon text-xs"></i>
+                <span>Fading Lights</span>
+            </div>
+            <div class="flex items-center py-1 px-2 rounded notion-hover cursor-pointer text-gray-500">
+                <i class="fas fa-plus mr-2"></i>
+                <span>Add new</span>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Shared</div>
+            <div class="flex items-center py-1 px-2 rounded notion-hover cursor-pointer text-gray-400">
+                <span>Start collaborating</span>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <div class="flex items-center py-1 px-2 rounded notion-hover cursor-pointer">
+                <i class="fas fa-cog mr-2 notion-icon"></i>
+                <span>Settings</span>
+            </div>
+            <div class="flex items-center py-1 px-2 rounded notion-hover cursor-pointer">
+                <i class="fas fa-layer-group mr-2 notion-icon"></i>
+                <span>Templates</span>
+            </div>
+            <div class="flex items-center py-1 px-2 rounded notion-hover cursor-pointer">
+                <i class="fas fa-trash mr-2 notion-icon"></i>
+                <span>Trash</span>
+            </div>
+        </div>
+
+        <div class="absolute bottom-16 left-4 right-4 notion-popup p-3">
+            <div class="text-sm mb-1">New database view just dropped: Feed View.</div>
+            <div class="text-sm text-gray-500 mb-2">Read pages in a content rich, streamlined way. <a href="#" class="text-blue-500">Try it out →</a></div>
+            <button class="absolute top-1 right-1 text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="absolute bottom-0 left-0 right-0 border-t border-gray-200 p-2 flex justify-between">
+            <button class="p-1 text-gray-400 hover:text-gray-600">
+                <i class="fas fa-lock"></i>
+                <i class="fas fa-question ml-1 text-xs"></i>
+            </button>
+            <button class="p-1 text-gray-400 hover:text-gray-600">
+                <i class="fas fa-clock"></i>
+            </button>
+            <button class="p-1 text-gray-400 hover:text-gray-600">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Notion-like top bar -->
+    <div class="fixed top-0 left-0 right-0 notion-topbar p-2 flex items-center justify-between md:pl-72 z-20">
+        <div class="flex items-center">
+            <button class="p-1 rounded notion-hover md:hidden">
+                <i class="fas fa-bars notion-icon"></i>
+            </button>
+            <div class="flex items-center ml-2">
+                <i class="fas fa-lock notion-icon mr-2 text-xs"></i>
+                <span class="text-sm text-gray-500">Private</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <div class="text-sm text-gray-500 mr-2">Edited 1d ago</div>
+            <button class="px-3 py-1 rounded notion-hover text-sm">
+                Share
+            </button>
+            <button class="p-1 rounded notion-hover">
+                <i class="fas fa-star notion-icon"></i>
+            </button>
+            <button class="p-1 rounded notion-hover">
+                <i class="fas fa-ellipsis-h notion-icon"></i>
+            </button>
+            <div class="w-6 h-6 rounded-full bg-gray-200 ml-2 flex items-center justify-center text-sm">G</div>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="notion-page px-4 py-2 md:pl-72">
+        <div class="notion-header">
+            <div class="notion-title" contenteditable="true" data-placeholder="Untitled">Fading Lights</div>
+        </div>
+
+        <div class="notion-content">
+            <h1 class="notion-h1" contenteditable="true" data-placeholder="Heading 1">Main Characters</h1>
+
+            <ol class="notion-list list-decimal" style="counter-reset: list-item;">
+                <li class="mb-6">
+                    <div class="notion-text">
+                        <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                        <div class="notion-line-menu">
+                            <div class="notion-line-menu-item">Turn into heading</div>
+                            <div class="notion-line-menu-item">Turn into text</div>
+                            <div class="notion-line-menu-item">Add comment</div>
+                            <div class="notion-line-menu-item">Delete</div>
+                        </div>
+                        <span class="notion-bold" contenteditable="true"><strong>Jonas Walker (Player Character):</strong></span>
+                    </div>
+                    <div class="pl-4">
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Role:</strong> Protagonist, investigative journalist turned fugitive.</span>
+                        </div>
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Personality:</strong> Cynical, introspective, and resourceful. Jonas is driven by a relentless need to uncover the truth, despite knowing the personal cost.</span>
+                        </div>
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Background:</strong> Jonas was once a celebrated journalist who exposed government corruption and surveillance. His gaggad made him a target of the regime, forcing him into hiding in Vigdana Low Sector. Despite his disillusionment with the world, Jonas can trust his back on those in need, especially Lena.</span>
+                        </div>
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Appearance:</strong> Early 40s, rugged and weary from years of struggle. Usually dressed in a worn trench coat and carrying a small backpack with essentials.</span>
+                        </div>
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Notable Traits:</strong></span>
+                        </div>
+                        <ul class="notion-list list-disc pl-6">
+                            <li class="notion-text">
+                                <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                                <div class="notion-line-menu">
+                                    <div class="notion-line-menu-item">Turn into heading</div>
+                                    <div class="notion-line-menu-item">Turn into text</div>
+                                    <div class="notion-line-menu-item">Add comment</div>
+                                    <div class="notion-line-menu-item">Delete</div>
+                                </div>
+                                <span contenteditable="true">Sharp observational skills.</span>
+                            </li>
+                            <li class="notion-text">
+                                <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                                <div class="notion-line-menu">
+                                    <div class="notion-line-menu-item">Turn into heading</div>
+                                    <div class="notion-line-menu-item">Turn into text</div>
+                                    <div class="notion-line-menu-item">Add comment</div>
+                                    <div class="notion-line-menu-item">Delete</div>
+                                </div>
+                                <span contenteditable="true">A tendency to narrate his thoughts in a noir-style monologue.</span>
+                            </li>
+                            <li class="notion-text">
+                                <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                                <div class="notion-line-menu">
+                                    <div class="notion-line-menu-item">Turn into heading</div>
+                                    <div class="notion-line-menu-item">Turn into text</div>
+                                    <div class="notion-line-menu-item">Add comment</div>
+                                    <div class="notion-line-menu-item">Delete</div>
+                                </div>
+                                <span contenteditable="true">Reluctantly hopeful despite cynicism.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="mb-6">
+                    <div class="notion-text">
+                        <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                        <div class="notion-line-menu">
+                            <div class="notion-line-menu-item">Turn into heading</div>
+                            <div class="notion-line-menu-item">Turn into text</div>
+                            <div class="notion-line-menu-item">Add comment</div>
+                            <div class="notion-line-menu-item">Delete</div>
+                        </div>
+                        <span class="notion-bold" contenteditable="true"><strong>Lena Solis:</strong></span>
+                    </div>
+                    <div class="pl-4">
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Role:</strong> Catalyst for the story, a fellow journalist and Jonas' closest friend.</span>
+                        </div>
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Personality:</strong> Brave, determined, and idealistic. Lena is willing to risk everything to fight for justice and expose the regime.</span>
+                        </div>
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Background:</strong> Lena was Jonas' partner during his days as a journalist. While Jonas grew jaded, Lena remained steadfast in her mission to reveal the truth. Her murder is the tipping point for Jonas to come out of hiding and uncover the conspiracy she died for.</span>
+                        </div>
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Appearance:</strong> Mid-30s, athletic build, with sharp features that reflect her fearless nature. Often wore practical clothing, ready to run or hide at a moment's notice.</span>
+                        </div>
+                        <div class="notion-text">
+                            <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                            <div class="notion-line-menu">
+                                <div class="notion-line-menu-item">Turn into heading</div>
+                                <div class="notion-line-menu-item">Turn into text</div>
+                                <div class="notion-line-menu-item">Add comment</div>
+                                <div class="notion-line-menu-item">Delete</div>
+                            </div>
+                            <span contenteditable="true"><strong>Notable Traits:</strong></span>
+                        </div>
+                        <ul class="notion-list list-disc pl-6">
+                            <li class="notion-text">
+                                <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                                <div class="notion-line-menu">
+                                    <div class="notion-line-menu-item">Turn into heading</div>
+                                    <div class="notion-line-menu-item">Turn into text</div>
+                                    <div class="notion-line-menu-item">Add comment</div>
+                                    <div class="notion-line-menu-item">Delete</div>
+                                </div>
+                                <span contenteditable="true">Carried a data drive containing proof of the government's experiments.</span>
+                            </li>
+                            <li class="notion-text">
+                                <div class="notion-line-handle"><i class="fas fa-grip-lines"></i></div>
+                                <div class="notion-line-menu">
+                                    <div class="notion-line-menu-item">Turn into heading</div>
+                                    <div class="notion-line-menu-item">Turn into text</div>
+                                    <div class="notion-line-menu-item">Add comment</div>
+                                    <div class="notion-line-menu-item">Delete</div>
+                                </div>
+                                <span contenteditable="true">Left a cryptic clue: <span class="notion-italic">"Keep it where the light fades."</span></span>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Floating format toolbar (appears when text is selected) -->
+    <div class="fixed bg-white shadow-lg rounded-md p-1 hidden z-30" id="format-toolbar">
+        <button class="p-2 rounded hover:bg-gray-100" title="Bold" onclick="formatText('bold')">
+            <i class="fas fa-bold"></i>
+        </button>
+        <button class="p-2 rounded hover:bg-gray-100" title="Italic" onclick="formatText('italic')">
+            <i class="fas fa-italic"></i>
+        </button>
+        <button class="p-2 rounded hover:bg-gray-100" title="Underline" onclick="formatText('underline')">
+            <i class="fas fa-underline"></i>
+        </button>
+        <div class="inline-block h-6 border-l border-gray-300 mx-1"></div>
+        <button class="p-2 rounded hover:bg-gray-100" title="Heading 1" onclick="formatHeading('h1')">
+            <span class="font-bold">H1</span>
+        </button>
+        <button class="p-2 rounded hover:bg-gray-100" title="Heading 2" onclick="formatHeading('h2')">
+            <span class="font-bold">H2</span>
+        </button>
+        <button class="p-2 rounded hover:bg-gray-100" title="Heading 3" onclick="formatHeading('h3')">
+            <span class="font-bold">H3</span>
+        </button>
+        <div class="inline-block h-6 border-l border-gray-300 mx-1"></div>
+        <button class="p-2 rounded hover:bg-gray-100" title="Bulleted List" onclick="formatList('ul')">
+            <i class="fas fa-list-ul"></i>
+        </button>
+        <button class="p-2 rounded hover:bg-gray-100" title="Numbered List" onclick="formatList('ol')">
+            <i class="fas fa-list-ol"></i>
+        </button>
+    </div>
+
+    <script>
+        // Show placeholder when element is empty
+        document.querySelectorAll('[contenteditable][data-placeholder]').forEach(el => {
+            el.addEventListener('focus', () => {
+                if (el.textContent === '') {
+                    el.classList.add('notion-placeholder');
+                }
+            });
+            
+            el.addEventListener('blur', () => {
+                if (el.textContent === '') {
+                    el.classList.add('notion-placeholder');
+                } else {
+                    el.classList.remove('notion-placeholder');
+                }
+            });
+            
+            el.addEventListener('input', () => {
+                if (el.textContent !== '') {
+                    el.classList.remove('notion-placeholder');
+                }
+            });
+            
+            // Initialize
+            if (el.textContent === '') {
+                el.classList.add('notion-placeholder');
+            }
+        });
+
+        // Format toolbar functionality
+        let lastSelection = null;
+
+        document.addEventListener('selectionchange', () => {
+            const selection = window.getSelection();
+            if (selection && !selection.isCollapsed) {
+                lastSelection = selection;
+                showFormatToolbar(selection);
+            } else {
+                hideFormatToolbar();
+            }
+        });
+
+        function showFormatToolbar(selection) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            const toolbar = document.getElementById('format-toolbar');
+            
+            toolbar.style.top = `${rect.top + window.scrollY - toolbar.offsetHeight - 10}px`;
+            toolbar.style.left = `${rect.left + window.scrollX - (toolbar.offsetWidth / 2) + (rect.width / 2)}px`;
+            toolbar.classList.remove('hidden');
+        }
+
+        function hideFormatToolbar() {
+            document.getElementById('format-toolbar').classList.add('hidden');
+        }
+
+        function formatText(format) {
+            if (!lastSelection || lastSelection.isCollapsed) return;
+            
+            document.execCommand(format, false, null);
+            lastSelection = null;
+            hideFormatToolbar();
+        }
+
+        function formatHeading(level) {
+            if (!lastSelection || lastSelection.isCollapsed) return;
+            
+            const range = lastSelection.getRangeAt(0);
+            const selectedText = range.toString();
+            const heading = document.createElement(level === 'h1' ? 'h1' : level === 'h2' ? 'h2' : 'h3');
+            heading.className = level === 'h1' ? 'notion-h1' : level === 'h2' ? 'notion-h2' : 'notion-h3';
+            heading.textContent = selectedText;
+            
+            range.deleteContents();
+            range.insertNode(heading);
+            
+            lastSelection = null;
+            hideFormatToolbar();
+        }
+
+        function formatList(type) {
+            if (!lastSelection || lastSelection.isCollapsed) return;
+            
+            const range = lastSelection.getRangeAt(0);
+            const selectedText = range.toString();
+            const lines = selectedText.split('\n');
+            
+            const list = document.createElement(type);
+            list.className = 'notion-list';
+            
+            lines.forEach(line => {
+                if (line.trim() === '') return;
+                const li = document.createElement('li');
+                li.className = 'notion-text';
+                li.textContent = line;
+                list.appendChild(li);
+            });
+            
+            range.deleteContents();
+            range.insertNode(list);
+            
+            lastSelection = null;
+            hideFormatToolbar();
+        }
+
+        // Close toolbar when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#format-toolbar') && !e.target.closest('[contenteditable]')) {
+                hideFormatToolbar();
+            }
+        });
+
+        // Ctrl+D to select current word
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    if (range.collapsed) {
+                        // Select current word
+                        range.expand('word');
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                }
+            }
+        });
+
+        // Line handle functionality
+        let draggedElement = null;
+        let dropTarget = null;
+
+        document.querySelectorAll('.notion-line-handle').forEach(handle => {
+            // Show menu when clicking handle
+            handle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const menu = handle.nextElementSibling;
+                document.querySelectorAll('.notion-line-menu').forEach(m => {
+                    if (m !== menu) m.style.display = 'none';
+                });
+                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                
+                // Position menu
+                const rect = handle.getBoundingClientRect();
+                menu.style.left = `${rect.left + 24}px`;
+                menu.style.top = `${rect.top}px`;
+            });
+
+            // Drag functionality
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                draggedElement = handle.parentElement;
+                draggedElement.classList.add('dragging');
+                
+                document.addEventListener('mousemove', handleDragMove);
+                document.addEventListener('mouseup', handleDragEnd);
+            });
+        });
+
+        function handleDragMove(e) {
+            if (!draggedElement) return;
+            
+            // Hide all menus during drag
+            document.querySelectorAll('.notion-line-menu').forEach(menu => {
+                menu.style.display = 'none';
+            });
+            
+            // Find potential drop target
+            const elements = document.querySelectorAll('.notion-text');
+            let closestElement = null;
+            let closestDistance = Infinity;
+            
+            elements.forEach(el => {
+                if (el === draggedElement) return;
+                
+                const rect = el.getBoundingClientRect();
+                const distance = Math.abs(e.clientY - rect.top);
+                
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestElement = el;
+                }
+            });
+            
+            // Update drop target
+            if (dropTarget && dropTarget !== closestElement) {
+                dropTarget.classList.remove('drop-target');
+            }
+            
+            if (closestElement && closestElement !== dropTarget) {
+                dropTarget = closestElement;
+                dropTarget.classList.add('drop-target');
+            }
+        }
+
+        function handleDragEnd() {
+            if (draggedElement && dropTarget) {
+                dropTarget.classList.remove('drop-target');
+                
+                // Move the dragged element before the drop target
+                const parent = dropTarget.parentElement;
+                parent.insertBefore(draggedElement, dropTarget);
+            }
+            
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+            
+            dropTarget = null;
+            
+            document.removeEventListener('mousemove', handleDragMove);
+            document.removeEventListener('mouseup', handleDragEnd);
+        }
+
+        // Close menus when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.notion-line-handle')) {
+                document.querySelectorAll('.notion-line-menu').forEach(menu => {
+                    menu.style.display = 'none';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

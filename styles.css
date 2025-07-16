@@ -468,7 +468,10 @@ input[type="file"] {
     border: 1px solid #d1d5db;
     transition: all 0.1s ease;
 }
-.palette
+.palette-style-button:hover {
+    background-color: #e5e7eb;
+    border-color: #1f2937;
+}
 
 /* New container for controls on the right side */
 .right-side-controls-container {
@@ -638,3 +641,21 @@ input[type="file"] {
 
 /* Removed Modal Styles */
 /* .modal, .modal.active, .modal-content, .modal-close-btn are no longer needed */
+
+#envMapDropZone {
+    border: 2px dashed #a0aec0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: #f9fafb;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+#envMapDropZone.drag-over {
+    border-color: #6366f1;
+    background: #e0e7ff;
+}
+#envMapPreviewCanvas {
+    background: #222;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}

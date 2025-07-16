@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Metalness Map Generator</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Inter font and general body layout */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f8fafc; /* Lighter, almost white background */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 2.5rem 1.5rem; /* Increased padding for overall comfort */
+            box-sizing: border-box;
+        }
+
+        /* Main container for the two-column layout */
+        .main-layout-container {
+            @apply flex flex-col lg:flex-row gap-10 w-full max-w-screen-xl mx-auto; /* Wider max-width, increased gap */
+        }
+
+        /* Left column for controls and 2D previews */
+        .left-column {
+            @apply flex flex-col gap-8 flex-1;
+        }
+
+        /* Right column for 3D preview, centered */
+        .right-column {
+            @apply flex flex-col items-center justify-center flex-1 lg:flex-none lg:w-2/3 xl:w-1/2;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* General card styling for containers */
+        .card-container {
+            @apply bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-gray-100; /* More prominent shadow, softer border */
+            width: 100%;
+        }
+
+        /* Specific styling for the 3D preview card to ensure it's centered and distinct */
+        .three-d-preview-card {
+            @apply bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-gray-100;
+            width: 100%;
+            height: fit-content;
+        }
+
+        /* Container for side-by-side 2D canvases within the left column */
+        .side-by-side-canvases {
+            @apply flex flex-col sm:flex-row sm:justify-center sm:items-start gap-6 w-full;
+        }
+
+        .canvas-wrapper {
+            @apply bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center border border-gray-100; /* Consistent card style */
+            flex: 1;
+            min-width: 250px;
+        }
+
+        canvas {
+            @apply border border-gray-300 rounded-lg bg-gray-50 mt-5; /* Slightly increased margin-top */
+            max-width: 100%;
+            height: auto;
+            box-shadow: inset 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        #threeJsCanvas {
+            width: 100%;
+            height: 500px; /* Further increased height for a grander 3D view */
+            background-color: #1c2128; /* Darker, more sophisticated background */
+            @apply rounded-xl shadow-inner mt-6;
+        }
+        h1 {
+            @apply text-6xl font-extrabold text-gray-900 mb-16 text-center leading-tight tracking-tight; /* Larger, tighter tracking */
+        }
+        h2 {
+            @apply text-4xl font-bold text-gray-800 mb-5 text-center; /* Larger, bolder subheadings */
+        }
+        p {
+            @apply text-xl text-gray-700 mb-8 text-center leading-relaxed; /* Larger, darker text with more line height */
+        }
+        .file-input {
+            @apply mt-8 p-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 text-gray-600 hover:border-blue-500 hover:bg-blue-50 transition-all duration-300 ease-in-out cursor-pointer; /* Styled as a drop zone, not just an input */
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .slider-container {
+            @apply w-full mt-8 flex flex-col items-center;
+        }
+        .slider-label {
+            @apply text-2xl font-semibold text-gray-700 mb-4; /* Larger slider labels */
+        }
+        .slider {
+            @apply w-full h-4 bg-gradient-to-r from-blue-200 to-blue-300 rounded-lg appearance-none cursor-pointer shadow-inner; /* Thicker track with subtle gradient */
+        }
+        .slider::-webkit-slider-thumb {
+            @apply w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full shadow-lg border-2 border-white transform hover:scale-110 transition-transform duration-200 ease-out; /* More prominent, gradient thumb */
+            -webkit-appearance: none;
+        }
+        .slider::-moz-range-thumb {
+            @apply w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full shadow-lg border-2 border-white transform hover:scale-110 transition-transform duration-200 ease-out;
+        }
+        .texture-button-group {
+            @apply flex flex-wrap justify-center gap-4 mt-10; /* More gap, more margin */
+        }
+        .texture-button {
+            @apply px-7 py-3 bg-gradient-to-br from-purple-600 to-indigo-700 text-white rounded-xl shadow-lg hover:from-purple-700 hover:to-indigo-800 transition-all duration-300 ease-in-out text-lg font-semibold transform hover:-translate-y-1 active:scale-95; /* More vibrant gradient, larger, active state */
+            min-width: 130px; /* Consistent button width */
+        }
+        .overlay {
+            @apply fixed bg-white rounded-2xl shadow-3xl p-7 z-50 border border-gray-100 hidden; /* More rounded, even stronger shadow */
+            bottom: 3rem; /* Adjusted position */
+            right: 3rem;
+            width: 350px; /* Wider overlay */
+        }
+        .overlay-header {
+            @apply flex items-center justify-between pb-4 border-b border-gray-200 mb-5; /* More padding, stronger border */
+        }
+        .overlay-close-btn {
+            @apply text-gray-500 hover:text-gray-900 text-3xl leading-none transition-colors duration-200; /* Larger close button */
+        }
+        .overlay-label {
+            @apply block text-lg font-medium text-gray-700 mb-3; /* Larger, bolder label */
+        }
+        .overlay-slider {
+            @apply w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer shadow-inner;
+        }
+        .overlay-slider::-webkit-slider-thumb {
+            @apply w-6 h-6 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full shadow-md transform hover:scale-110 transition-transform duration-200 ease-out; /* Teal gradient thumb for overlays */
+            -webkit-appearance: none;
+        }
+        .overlay-slider::-moz-range-thumb {
+            @apply w-6 h-6 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full shadow-md transform hover:scale-110 transition-transform duration-200 ease-out;
+        }
+        .overlay-reset-btn {
+            @apply px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-150 text-base font-medium shadow-md; /* More prominent red reset button */
+        }
+        .checkbox-container {
+            @apply flex items-center mt-4;
+        }
+        .checkbox-input {
+            @apply h-6 w-6 text-blue-600 rounded focus:ring-blue-500; /* Larger checkbox */
+        }
+        .checkbox-label {
+            @apply ml-3 text-lg text-gray-700; /* Larger label */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <h1 class="text-5xl font-extrabold text-gray-900 mb-12 text-center leading-tight">3D Metalness Map Generator</h1>
+
+    <div class="main-layout-container">
+        <!-- Left Column: Controls and 2D Previews -->
+        <div class="left-column">
+            <div class="card-container">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Upload Your Image</h2>
+                <p class="text-lg text-gray-600 mb-6">
+                    Select an image file to generate its metalness map.
+                </p>
+                <input type="file" id="imageUpload" accept="image/*" class="file-input">
+
+                <div class="slider-container">
+                    <label for="metalnessStrengthSlider" class="slider-label">Metalness Strength: <span id="metalnessStrengthValue">50</span>%</label>
+                    <input type="range" id="metalnessStrengthSlider" min="0" max="100" value="50" class="slider">
+                </div>
+
+                <div class="slider-container">
+                    <label for="roughnessSlider" class="slider-label">Roughness: <span id="roughnessValue">50</span>%</label>
+                    <input type="range" id="roughnessSlider" min="0" max="100" value="50" class="slider">
+                </div>
+            </div>
+
+            <div class="card-container">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Original Image Canvas</h2>
+                <p class="text-lg text-gray-600 mb-6">
+                    This canvas displays the loaded image or a default black/white image.
+                </p>
+                <canvas id="originalCanvas" width="400" height="200"></canvas>
+            </div>
+
+            <div class="side-by-side-canvases">
+                <div class="canvas-wrapper">
+                    <h2 class="text-xl font-semibold text-gray-700 md:text-2xl">Generated Metalness Map (Non-Inverted)</h2>
+                    <p class="text-sm text-gray-500 md:text-base">
+                        Darker areas in source = non-metallic (black), lighter areas = metallic (white).
+                    </p>
+                    <canvas id="metallicMapCanvas" width="400" height="200"></canvas>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <h2 class="text-xl font-semibold text-gray-700 md:text-2xl">Generated Roughness Map</h2>
+                    <p class="text-sm text-gray-500 md:text-base">
+                        Generated from the original image (inverse of metalness for non-metallic areas).
+                    </p>
+                    <canvas id="roughnessMapCanvas" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: 3D Preview -->
+        <div class="right-column">
+            <div class="three-d-preview-card">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">3D Preview</h2>
+                <p class="text-lg text-gray-600 mb-6">
+                    Observe the metalness and roughness maps applied to a 3D sphere. Use your mouse to rotate.
+                </p>
+                <canvas id="threeJsCanvas"></canvas>
+
+                <div class="texture-button-group">
+                    <button class="texture-button" data-map-type="pbr">Full PBR</button>
+                    <button class="texture-button" data-map-type="color">Color</button>
+                    <button class="texture-button" data-map-type="metallic" id="metallicMapButton">Metallic</button>
+                    <button class="texture-button" data-map-type="roughness" id="roughnessMapButton">Roughness</button>
+                    <button class="texture-button" data-map-type="normal" id="normalMapButton">Normal</button>
+                    <button class="texture-button" data-map-type="ao" id="aoMapButton">AO</button>
+                    <button class="texture-button" data-map-type="displacement" id="displacementMapButton">Displacement</button>
+                    <button class="texture-button" data-map-type="emission" id="emissionMapButton">Emission</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlays for Map Settings (positioned fixed, so outside main-layout-container) -->
+
+    <!-- Normal Map Overlay -->
+    <div id="normalMapOverlay" class="overlay">
+        <div class="overlay-header">
+            <span class="font-semibold text-gray-800">Normal Map Settings</span>
+            <button id="closeNormalMapOverlay" class="overlay-close-btn" tabindex="-1">&times;</button>
+        </div>
+        <div class="text-sm text-gray-500 mb-2">Adjust normal map strength and Y-axis inversion.</div>
+        <div class="mb-3">
+            <label class="overlay-label" for="normalStrengthRange">Strength: <span id="normalStrengthValue">0.5</span></label>
+            <input type="range" id="normalStrengthRange" min="0.0" max="2.0" step="0.1" value="0.5" class="overlay-slider">
+        </div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="invertNormalY" class="checkbox-input">
+            <label for="invertNormalY" class="checkbox-label">Invert Y</label>
+        </div>
+        <div class="flex justify-end mt-2">
+            <button id="resetNormalStrength" class="overlay-reset-btn">Reset</button>
+        </div>
+    </div>
+
+    <!-- Roughness Map Overlay -->
+    <div id="roughnessMapOverlay" class="overlay">
+        <div class="overlay-header">
+            <span class="font-semibold text-gray-800">Roughness Map Settings</span>
+            <button id="closeRoughnessMapOverlay" class="overlay-close-btn" tabindex="-1">&times;</button>
+        </div>
+        <div class="text-sm text-gray-500 mb-2">Adjust roughness strength and inversion.</div>
+        <div class="mb-3">
+            <label class="overlay-label" for="roughnessStrengthRange">Strength: <span id="roughnessStrengthValue">0.50</span></label>
+            <input type="range" id="roughnessStrengthRange" min="0.0" max="1.0" step="0.01" value="0.5" class="overlay-slider">
+        </div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="roughnessInvertRange" class="checkbox-input">
+            <label for="roughnessInvertRange" class="checkbox-label">Invert</label>
+        </div>
+        <div class="flex justify-end mt-2">
+            <button id="resetRoughnessMap" class="overlay-reset-btn">Reset</button>
+        </div>
+    </div>
+
+    <!-- AO Map Overlay -->
+    <div id="aoMapOverlay" class="overlay">
+        <div class="overlay-header">
+            <span class="font-semibold text-gray-800">AO Map Settings</span>
+            <button id="closeAoMapOverlay" class="overlay-close-btn" tabindex="-1">&times;</button>
+        </div>
+        <div class="text-sm text-gray-500 mb-2">Adjust ambient occlusion intensity.</div>
+        <div class="mb-3">
+            <label class="overlay-label" for="aoIntensityRange">Intensity: <span id="aoIntensityValue">2.0</span></label>
+            <input type="range" id="aoIntensityRange" min="0.0" max="5.0" step="0.1" value="2.0" class="overlay-slider">
+        </div>
+        <div class="flex justify-end mt-2">
+            <button id="resetAoMap" class="overlay-reset-btn">Reset</button>
+        </div>
+    </div>
+
+    <!-- Metallic Map Overlay -->
+    <div id="metallicMapOverlay" class="overlay">
+        <div class="overlay-header">
+            <span class="font-semibold text-gray-800">Metallic Map Settings</span>
+            <button id="closeMetallicMapOverlay" class="overlay-close-btn" tabindex="-1">&times;</button>
+        </div>
+        <div class="text-sm text-gray-500 mb-2">Adjust metallic map contrast and inversion.</div>
+        <div class="mb-3">
+            <label class="overlay-label" for="metallicContrastRange">Contrast: <span id="metallicContrastValue">1.0</span></label>
+            <input type="range" id="metallicContrastRange" min="0.0" max="2.0" step="0.1" value="1.0" class="overlay-slider">
+        </div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="metallicInvertRange" class="checkbox-input">
+            <label for="metallicInvertRange" class="checkbox-label">Invert</label>
+        </div>
+        <div class="flex justify-end mt-2">
+            <button id="resetMetallicMap" class="overlay-reset-btn">Reset</button>
+        </div>
+    </div>
+
+    <!-- Displacement Map Overlay -->
+    <div id="displacementMapOverlay" class="overlay">
+        <div class="overlay-header">
+            <span class="font-semibold text-gray-800">Displacement Map Settings</span>
+            <button id="closeDisplacementMapOverlay" class="overlay-close-btn" tabindex="-1">&times;</button>
+        </div>
+        <div class="text-sm text-gray-500 mb-2">Adjust displacement strength and inversion.</div>
+        <div class="mb-3">
+            <label class="overlay-label" for="displacementStrengthRange">Strength: <span id="displacementStrengthValue">0.01</span></label>
+            <input type="range" id="displacementStrengthRange" min="0.0" max="0.1" step="0.001" value="0.01" class="overlay-slider">
+        </div>
+        <div class="checkbox-container">
+            <input type="checkbox" id="displacementInvertRange" class="checkbox-input">
+            <label for="displacementInvertRange" class="checkbox-label">Invert</label>
+        </div>
+        <div class="flex justify-end mt-2">
+            <button id="resetDisplacementMap" class="overlay-reset-btn">Reset</button>
+        </div>
+    </div>
+
+    <!-- Emission Map Overlay -->
+    <div id="emissionMapOverlay" class="overlay">
+        <div class="overlay-header">
+            <span class="font-semibold text-gray-800">Emission Map Settings</span>
+            <button id="closeEmissionMapOverlay" class="overlay-close-btn" tabindex="-1">&times;</button>
+        </div>
+        <div class="text-sm text-gray-500 mb-2">0 = no emission, 1 = full emission</div>
+        <div class="mb-3">
+            <label class="overlay-label" for="emissionStrengthRange">Strength: <span id="emissionStrengthValue">1.0</span></label>
+            <input type="range" id="emissionStrengthRange" min="0.0" max="2.0" step="0.1" value="1.0" class="overlay-slider">
+        </div>
+        <div class="flex justify-end mt-2">
+            <button id="resetEmissionMap" class="overlay-reset-btn">Reset</button>
+        </div>
+    </div>
+
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls for camera interaction -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- RGBELoader for HDR environment maps -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+
+    <script>
+        // --- 2D Map Generation Functions ---
+
+        /**
+         * Generates a metalness map from an image drawn on a canvas.
+         * The metalness map will be a grayscale image where:
+         * - Black (0) represents non-metallic surfaces.
+         * - White (255) represents fully metallic surfaces.
+         *
+         * @param {HTMLCanvasElement} canvas The input canvas containing the source image.
+         * @param {boolean} invert If true, inverts the metalness logic: black in source becomes metallic, white becomes non-metallic.
+         * @param {number} strength A value from 0 to 100, controlling the overall intensity/presence of metalness.
+         * 0 means completely non-metallic (full black map), 100 means full white (fully metallic).
+         * At 50% strength, the map will closely resemble the original image's grayscale.
+         * @returns {HTMLCanvasElement} A new canvas element containing the generated metalness map.
+         */
+        function generateMetalnessMapFromImage(canvas, invert = false, strength = 50) {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error("Could not get 2D context from the input canvas.");
+                return null;
+            }
+
+            const width = canvas.width;
+            const height = canvas.height;
+
+            let imageData;
+            try {
+                imageData = ctx.getImageData(0, 0, width, height);
+            } catch (e) {
+                console.error("Could not get image data. Ensure image is from the same origin or CORS is handled.", e);
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = '#FFCCCC';
+                ctx.fillRect(0, 0, width, height);
+                ctx.font = '16px Inter, sans-serif';
+                ctx.fillStyle = '#CC0000';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Error: Cannot process image due to security restrictions.', width / 2, height / 2 - 10);
+                ctx.fillText('Try uploading a local image.', width / 2, height / 2 + 10);
+                return null;
+            }
+
+            const pixels = imageData.data;
+            const metalnessCanvas = document.createElement('canvas');
+            metalnessCanvas.width = width;
+            metalnessCanvas.height = height;
+            const metalnessCtx = metalnessCanvas.getContext('2d');
+            if (!metalnessCtx) {
+                console.error("Could not get 2D context for the metalness canvas.");
+                return null;
+            }
+
+            const metalnessImageData = metalnessCtx.createImageData(width, height);
+            const metalnessPixels = metalnessImageData.data;
+
+            // Normalize strength to a factor between 0 and 1
+            const normalizedStrength = strength / 100.0;
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+
+                // Calculate a grayscale value from the RGB channels (luminance method for better perception)
+                const grayscale = (0.2126 * r + 0.7152 * g + 0.0722 * b);
+                const normalizedGrayscale = grayscale / 255.0; // Normalize to 0-1
+
+                let finalNormalizedMetalness;
+
+                // Blend the original grayscale with pure black (0) and pure white (1) based on strength
+                // At strength 0, it's 0 (black). At strength 1, it's 1 (white).
+                // In between, it's a smooth interpolation of the original grayscale towards black/white.
+                if (normalizedStrength <= 0.5) {
+                    // From 0 to 0.5 strength, blend from 0 (black) to original grayscale
+                    const blendFactor = normalizedStrength / 0.5; // 0 to 1 as strength goes 0 to 0.5
+                    finalNormalizedMetalness = 0 * (1 - blendFactor) + normalizedGrayscale * blendFactor;
+                } else {
+                    // From 0.5 to 1 strength, blend from original grayscale to 1 (white)
+                    const blendFactor = (normalizedStrength - 0.5) / 0.5; // 0 to 1 as strength goes 0.5 to 1
+                    finalNormalizedMetalness = normalizedGrayscale * (1 - blendFactor) + 1 * blendFactor;
+                }
+
+                // Ensure final value is clamped between 0 and 1
+                finalNormalizedMetalness = Math.max(0, Math.min(1, finalNormalizedMetalness));
+
+                // Convert back to 0-255 range
+                const finalMetalnessValue = finalNormalizedMetalness * 255;
+
+                let pixelMetalnessValue;
+                if (invert) {
+                    pixelMetalnessValue = 255 - finalMetalnessValue;
+                } else {
+                    pixelMetalnessValue = finalMetalnessValue;
+                }
+
+                metalnessPixels[i] = pixelMetalnessValue;
+                metalnessPixels[i + 1] = pixelMetalnessValue;
+                metalnessPixels[i + 2] = pixelMetalnessValue;
+                metalnessPixels[i + 3] = 255;
+            }
+
+            metalnessCtx.putImageData(metalnessImageData, 0, 0);
+            return metalnessCanvas;
+        }
+
+        /**
+         * Generates a roughness map from an image drawn on a canvas.
+         * This map is typically the inverse of metalness, where non-metallic areas are rough (white)
+         * and metallic areas are smooth (black).
+         *
+         * @param {HTMLCanvasElement} canvas The input canvas containing the source image.
+         * @param {boolean} invert If true, inverts the grayscale value.
+         * @param {number} strength A value from 0.0 to 1.0 to scale the roughness effect.
+         * @returns {HTMLCanvasElement} A new canvas element containing the generated roughness map.
+         */
+        function generateRoughnessMapFromImage(canvas, invert = false, strength = 1.0) {
+            if (!(canvas instanceof HTMLCanvasElement)) {
+                console.error("Invalid input: 'canvas' must be an HTMLCanvasElement.");
+                return null;
+            }
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error("Could not get 2D context from the input canvas.");
+                return null;
+            }
+
+            const width = canvas.width;
+            const height = canvas.height;
+
+            let imageData;
+            try {
+                imageData = ctx.getImageData(0, 0, width, height);
+            } catch (e) {
+                console.error("Could not get image data for roughness map. Ensure image is from the same origin or CORS is handled.", e);
+                return null;
+            }
+
+            const pixels = imageData.data;
+            const roughnessCanvas = document.createElement('canvas');
+            roughnessCanvas.width = width;
+            roughnessCanvas.height = height;
+            const roughnessCtx = roughnessCanvas.getContext('2d');
+            if (!roughnessCtx) {
+                console.error("Could not get 2D context for the roughness canvas.");
+                return null;
+            }
+
+            const roughnessImageData = roughnessCtx.createImageData(width, height);
+            const roughnessPixels = roughnessImageData.data;
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+
+                const grayscale = (0.2126 * r + 0.7152 * g + 0.0722 * b);
+                let roughnessValue = grayscale;
+
+                // Invert for typical roughness behavior (dark areas smooth, bright areas rough)
+                roughnessValue = 255 - roughnessValue;
+
+                // Apply strength
+                roughnessValue = Math.max(0, Math.min(255, roughnessValue * strength));
+
+                if (invert) {
+                    roughnessValue = 255 - roughnessValue;
+                }
+
+                roughnessPixels[i] = roughnessValue;
+                roughnessPixels[i + 1] = roughnessValue;
+                roughnessPixels[i + 2] = roughnessValue;
+                roughnessPixels[i + 3] = 255; // Alpha
+            }
+
+            roughnessCtx.putImageData(roughnessImageData, 0, 0);
+            return roughnessCanvas;
+        }
+
+        /**
+         * Generates a normal map from an image using a Sobel filter.
+         *
+         * @param {HTMLCanvasElement} canvas The input canvas containing the source image.
+         * @param {number} strength Multiplier for the normal map effect.
+         * @param {boolean} invertY If true, inverts the Y-channel of the normal map.
+         * @returns {HTMLCanvasElement} A new canvas element containing the generated normal map.
+         */
+        function generateNormalMapFromImage(canvas, strength = 1.0, invertY = false) {
+            if (!(canvas instanceof HTMLCanvasElement)) {
+                console.error("Invalid input: 'canvas' must be an HTMLCanvasElement.");
+                return null;
+            }
+
+            const width = canvas.width;
+            const height = canvas.height;
+            const ctx = canvas.getContext('2d');
+            const srcData = ctx.getImageData(0, 0, width, height);
+            const dstCanvas = document.createElement('canvas');
+            dstCanvas.width = width;
+            dstCanvas.height = height;
+            const dstCtx = dstCanvas.getContext('2d');
+            const dstData = dstCtx.createImageData(width, height);
+
+            // Convert to grayscale
+            const gray = [];
+            for (let i = 0; i < srcData.data.length; i += 4) {
+                const avg = (srcData.data[i] + srcData.data[i+1] + srcData.data[i+2]) / 3;
+                gray.push(avg);
+            }
+
+            // Sobel kernels
+            const sobelX = [-1,0,1,-2,0,2,-1,0,1];
+            const sobelY = [-1,-2,-1,0,0,0,1,2,1];
+
+            for (let y = 1; y < height-1; y++) {
+                for (let x = 1; x < width-1; x++) {
+                    let gx = 0, gy = 0;
+                    let idx = 0;
+                    for (let ky = -1; ky <= 1; ky++) {
+                        for (let kx = -1; kx <= 1; kx++) {
+                            const px = x + kx;
+                            const py = y + ky;
+                            const pixel = gray[py * width + px];
+                            gx += pixel * sobelX[idx];
+                            gy += pixel * sobelY[idx];
+                            idx++;
+                        }
+                    }
+                    // Normal vector components
+                    const nx = gx;
+                    let ny = gy;
+                    if (invertY) ny = -ny; // Invert Y as per common normal map conventions
+                    const nz = 255.0 / strength; // Z component based on strength
+
+                    // Normalize and map to 0-255 range
+                    const length = Math.sqrt(nx*nx + ny*ny + nz*nz);
+                    const r = Math.round(128 + 127 * (nx / length));
+                    const g = Math.round(128 + 127 * (ny / length));
+                    const b = Math.round(128 + 127 * (nz / length));
+
+                    const i = (y * width + x) * 4;
+                    dstData.data[i] = r;
+                    dstData.data[i+1] = g;
+                    dstData.data[i+2] = b;
+                    dstData.data[i+3] = 255;
+                }
+            }
+            dstCtx.putImageData(dstData, 0, 0);
+            return dstCanvas;
+        }
+
+        /**
+         * Generates an Ambient Occlusion (AO) map from an image.
+         * This version converts to grayscale and applies a simple blur.
+         *
+         * @param {HTMLCanvasElement} canvas The input canvas containing the source image.
+         * @returns {HTMLCanvasElement} A new canvas element containing the generated AO map.
+         */
+        function generateAOMapFromImage(canvas) {
+            if (!(canvas instanceof HTMLCanvasElement)) {
+                console.error("Invalid input: 'canvas' must be an HTMLCanvasElement.");
+                return null;
+            }
+            const width = canvas.width;
+            const height = canvas.height;
+            const ctx = canvas.getContext('2d');
+            const srcData = ctx.getImageData(0, 0, width, height);
+            const aoCanvas = document.createElement('canvas');
+            aoCanvas.width = width;
+            aoCanvas.height = height;
+            const aoCtx = aoCanvas.getContext('2d');
+            const aoImageData = aoCtx.createImageData(width, height);
+            const aoPixels = aoImageData.data;
+
+            // Convert to grayscale and copy to AO pixels
+            for (let i = 0; i < srcData.data.length; i += 4) {
+                const r = srcData.data[i];
+                const g = srcData.data[i + 1];
+                const b = srcData.data[i + 2];
+                const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+                aoPixels[i] = gray;
+                aoPixels[i + 1] = gray;
+                aoPixels[i + 2] = gray;
+                aoPixels[i + 3] = 255; // Alpha
+            }
+
+            // Apply a simple box blur (can be optimized or replaced with Gaussian blur)
+            const blurredPixels = new Uint8ClampedArray(aoPixels);
+            const radius = 2; // Blur radius
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let sumR = 0, sumG = 0, sumB = 0, count = 0;
+                    for (let dy = -radius; dy <= radius; dy++) {
+                        for (let dx = -radius; dx <= radius; dx++) {
+                            const nx = x + dx;
+                            const ny = y + dy;
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                const idx = (ny * width + nx) * 4;
+                                sumR += aoPixels[idx];
+                                sumG += aoPixels[idx + 1];
+                                sumB += aoPixels[idx + 2];
+                                count++;
+                            }
+                        }
+                    }
+                    const currentIdx = (y * width + x) * 4;
+                    blurredPixels[currentIdx] = Math.round(sumR / count);
+                    blurredPixels[currentIdx + 1] = Math.round(sumG / count);
+                    blurredPixels[currentIdx + 2] = Math.round(sumB / count);
+                }
+            }
+
+            // Copy blurred pixels back to aoImageData
+            for (let i = 0; i < aoImageData.data.length; i++) {
+                aoImageData.data[i] = blurredPixels[i];
+            }
+
+            aoCtx.putImageData(aoImageData, 0, 0);
+            return aoCanvas;
+        }
+
+        /**
+         * Generates a displacement map from an image.
+         *
+         * @param {HTMLCanvasElement} canvas The input canvas.
+         * @param {number} strength Overall multiplier for displacement.
+         * @param {boolean} invert If true, inverts the grayscale values.
+         * @returns {HTMLCanvasElement} A new canvas element containing the generated displacement map.
+         */
+        function generateDisplacementMapFromImage(canvas, invert = false, strength = 1.0) {
+            const width = canvas.width;
+            const height = canvas.height;
+            const ctx = canvas.getContext('2d');
+            const srcData = ctx.getImageData(0, 0, width, height);
+            const dstCanvas = document.createElement('canvas');
+            dstCanvas.width = width;
+            dstCanvas.height = height;
+            const dstCtx = dstCanvas.getContext('2d');
+            const dstData = dstCtx.createImageData(width, height);
+
+            for (let i = 0; i < srcData.data.length; i += 4) {
+                let avg = (srcData.data[i] + srcData.data[i+1] + srcData.data[i+2]) / 3 / 255;
+                if (invert) avg = 1 - avg;
+                avg = Math.max(0, Math.min(1, avg * strength));
+                const val = Math.round(avg * 255);
+                dstData.data[i] = val;
+                dstData.data[i+1] = val;
+                dstData.data[i+2] = val;
+                dstData.data[i+3] = 255;
+            }
+            dstCtx.putImageData(dstData, 0, 0);
+            return dstCanvas;
+        }
+
+        /**
+         * Generates an emission map from an image.
+         * Higher values (whiter pixels) will cause the material to emit light.
+         *
+         * @param {HTMLCanvasElement} canvas The input canvas.
+         * @param {number} strength Multiplier for the emission intensity.
+         * @returns {HTMLCanvasElement} A new canvas element containing the generated emission map.
+         */
+        function generateEmissionMapFromImage(canvas, strength = 1.0) {
+            if (!(canvas instanceof HTMLCanvasElement)) {
+                console.error("Invalid input: 'canvas' must be an HTMLCanvasElement.");
+                return null;
+            }
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error("Could not get 2D context from the input canvas.");
+                return null;
+            }
+
+            const width = canvas.width;
+            const height = canvas.height;
+
+            let imageData;
+            try {
+                imageData = ctx.getImageData(0, 0, width, height);
+            } catch (e) {
+                console.error("Could not get image data for emission map. Ensure image is from the same origin or CORS is handled.", e);
+                return null;
+            }
+
+            const pixels = imageData.data;
+            const emissionCanvas = document.createElement('canvas');
+            emissionCanvas.width = width;
+            emissionCanvas.height = height;
+            const emissionCtx = emissionCanvas.getContext('2d');
+            if (!emissionCtx) {
+                console.error("Could not get 2D context for the emission canvas.");
+                return null;
+            }
+
+            const emissionImageData = emissionCtx.createImageData(width, height);
+            const emissionPixels = emissionImageData.data;
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+
+                // Calculate grayscale value (luminance)
+                const grayscale = (0.2126 * r + 0.7152 * g + 0.0722 * b);
+
+                // Apply strength directly to grayscale value
+                const emissionValue = Math.max(0, Math.min(255, grayscale * strength));
+
+                emissionPixels[i] = emissionValue;
+                emissionPixels[i + 1] = emissionValue;
+                emissionPixels[i + 2] = emissionValue;
+                emissionPixels[i + 3] = 255; // Alpha
+            }
+
+            emissionCtx.putImageData(emissionImageData, 0, 0);
+            return emissionCanvas;
+        }
+
+
+        // --- Three.js Global Variables ---
+        let scene, camera, renderer, controls, sphere, material;
+        let metalnessTexture, roughnessTexture, normalTexture, aoTexture, displacementTexture, emissionTexture; // Three.js textures for maps
+        let currentUploadedImage = null; // Store the currently loaded image for re-processing
+
+        // --- Global State for Map Overlays ---
+        let normalMapStrength = 0.5;
+        let normalMapInvertY = false;
+        let roughnessInvert = false;
+        let roughnessStrength = 0.5; // This is the overlay slider, distinct from material.roughness
+        let aoMapIntensity = 2.0;
+        let metallicInvert = false;
+        let metallicContrast = 1.0; // This is the overlay slider, distinct from generateMetalnessMapFromImage strength
+        let displacementStrength = 0.01;
+        let displacementInvert = false;
+        let emissionIntensity = 1.0;
+
+
+        // --- Helper for creating base canvas from image ---
+        // Moved to global scope
+        function createBaseCanvasFromImage(img) {
+            const MAX_SIZE = 1024; // Limit size for performance
+            let width = img.width;
+            let height = img.height;
+            if (width > MAX_SIZE || height > MAX_SIZE) {
+                if (width > height) {
+                    height = Math.round(height * (MAX_SIZE / width));
+                    width = MAX_SIZE;
+                } else {
+                    width = Math.round(width * (MAX_SIZE / height));
+                    height = MAX_SIZE;
+                }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            return canvas;
+        }
+
+        // --- Function to update all maps based on originalCanvas content and slider values ---
+        function updateAllMaps() {
+            const originalCanvas = document.getElementById('originalCanvas');
+            const metallicMapCanvas = document.getElementById('metallicMapCanvas');
+            const roughnessMapCanvas = document.getElementById('roughnessMapCanvas');
+
+            // Get slider values from main UI
+            const metalnessStrengthSlider = document.getElementById('metalnessStrengthSlider');
+            const roughnessSlider = document.getElementById('roughnessSlider'); // Main roughness slider
+            const currentMetalnessStrength = parseInt(metalnessStrengthSlider.value, 10);
+            const currentRoughnessValue = parseFloat(roughnessSlider.value) / 100.0; // Normalize 0-1 for material.roughness
+
+            // Get values from overlay sliders (if they exist and are visible)
+            const normalStrengthRange = document.getElementById('normalStrengthRange');
+            if (normalStrengthRange) normalMapStrength = parseFloat(normalStrengthRange.value);
+            const invertNormalY = document.getElementById('invertNormalY');
+            if (invertNormalY) normalMapInvertY = invertNormalY.checked;
+
+            const roughnessInvertRange = document.getElementById('roughnessInvertRange');
+            if (roughnessInvertRange) roughnessInvert = roughnessInvertRange.checked;
+            const roughnessOverlayStrengthRange = document.getElementById('roughnessStrengthRange');
+            if (roughnessOverlayStrengthRange) roughnessStrength = parseFloat(roughnessOverlayStrengthRange.value);
+
+            const aoIntensityRange = document.getElementById('aoIntensityRange');
+            if (aoIntensityRange) aoMapIntensity = parseFloat(aoIntensityRange.value);
+
+            const metallicInvertRange = document.getElementById('metallicInvertRange');
+            if (metallicInvertRange) metallicInvert = metallicInvertRange.checked;
+            // The metallicContrastRange is not directly used in generateMetalnessMapFromImage as per new logic
+            // const metallicContrastRange = document.getElementById('metallicContrastRange');
+            // if (metallicContrastRange) metallicContrast = parseFloat(metallicContrastRange.value);
+
+            const displacementStrengthRange = document.getElementById('displacementStrengthRange');
+            if (displacementStrengthRange) displacementStrength = parseFloat(displacementStrengthRange.value);
+            const displacementInvertRange = document.getElementById('displacementInvertRange');
+            if (displacementInvertRange) displacementInvert = displacementInvertRange.checked;
+
+            const emissionStrengthRange = document.getElementById('emissionStrengthRange');
+            if (emissionStrengthRange) emissionIntensity = parseFloat(emissionStrengthRange.value);
+
+
+            // --- Generate and Update 2D Maps (if originalCanvas has content) ---
+            if (currentUploadedImage) {
+                const baseCanvas = createBaseCanvasFromImage(currentUploadedImage);
+
+                // Metalness Map
+                const generatedMetalnessCanvas = generateMetalnessMapFromImage(baseCanvas, metallicInvert, currentMetalnessStrength);
+                if (generatedMetalnessCanvas) {
+                    metallicMapCanvas.width = generatedMetalnessCanvas.width;
+                    metallicMapCanvas.height = generatedMetalnessCanvas.height;
+                    metallicMapCanvas.getContext('2d').drawImage(generatedMetalnessCanvas, 0, 0);
+                    if (metalnessTexture) metalnessTexture.dispose();
+                    metalnessTexture = new THREE.CanvasTexture(generatedMetalnessCanvas);
+                    metalnessTexture.needsUpdate = true;
+                    material.metalnessMap = metalnessTexture;
+                }
+
+                // Roughness Map
+                const generatedRoughnessCanvas = generateRoughnessMapFromImage(baseCanvas, roughnessInvert, roughnessStrength);
+                if (generatedRoughnessCanvas) {
+                    roughnessMapCanvas.width = generatedRoughnessCanvas.width;
+                    roughnessMapCanvas.height = generatedRoughnessCanvas.height;
+                    roughnessMapCanvas.getContext('2d').drawImage(generatedRoughnessCanvas, 0, 0);
+                    if (roughnessTexture) roughnessTexture.dispose();
+                    roughnessTexture = new THREE.CanvasTexture(generatedRoughnessCanvas);
+                    roughnessTexture.needsUpdate = true;
+                    material.roughnessMap = roughnessTexture;
+                }
+
+                // Normal Map
+                const generatedNormalCanvas = generateNormalMapFromImage(baseCanvas, normalMapStrength, normalMapInvertY);
+                if (normalTexture) normalTexture.dispose();
+                normalTexture = new THREE.CanvasTexture(generatedNormalCanvas);
+                normalTexture.needsUpdate = true;
+                material.normalMap = normalTexture;
+                material.normalScale.set(normalMapStrength, normalMapStrength); // Apply strength to normalScale
+
+                // AO Map
+                const generatedAOCanvas = generateAOMapFromImage(baseCanvas);
+                if (aoTexture) aoTexture.dispose();
+                aoTexture = new THREE.CanvasTexture(generatedAOCanvas);
+                aoTexture.needsUpdate = true;
+                material.aoMap = aoTexture;
+                material.aoMapIntensity = aoMapIntensity;
+
+                // Displacement Map
+                const generatedDisplacementCanvas = generateDisplacementMapFromImage(baseCanvas, displacementStrength, displacementInvert);
+                if (displacementTexture) displacementTexture.dispose();
+                displacementTexture = new THREE.CanvasTexture(generatedDisplacementCanvas);
+                displacementTexture.needsUpdate = true;
+                material.displacementMap = displacementTexture;
+                material.displacementScale = displacementStrength;
+
+                // Emission Map
+                const generatedEmissionCanvas = generateEmissionMapFromImage(baseCanvas, emissionIntensity);
+                if (emissionTexture) emissionTexture.dispose();
+                emissionTexture = new THREE.CanvasTexture(generatedEmissionCanvas);
+                emissionTexture.needsUpdate = true;
+                material.emissiveMap = emissionTexture;
+                material.emissiveIntensity = emissionIntensity; // Use the same strength for intensity
+                // Set emissive color to white to allow map to show full color
+                material.emissive.setHex(0xFFFFFF);
+
+            } else {
+                // If no image, reset maps to null or default procedural textures
+                if (metalnessTexture) metalnessTexture.dispose(); metalnessTexture = null; material.metalnessMap = null;
+                if (roughnessTexture) roughnessTexture.dispose(); roughnessTexture = null; material.roughnessMap = null;
+                if (normalTexture) normalTexture.dispose(); normalTexture = null; material.normalMap = null;
+                if (aoTexture) aoTexture.dispose(); aoTexture = null; material.aoMap = null;
+                if (displacementTexture) displacementTexture.dispose(); displacementTexture = null; material.displacementMap = null;
+                if (emissionTexture) emissionTexture.dispose(); emissionTexture = null; material.emissiveMap = null;
+                material.emissiveIntensity = 0; // No emission if no map
+                material.emissive.setHex(0x000000); // Black emissive color
+            }
+
+            // Always update Three.js material's overall roughness value from main slider
+            if (material) {
+                material.roughness = currentRoughnessValue;
+                material.needsUpdate = true;
+            }
+
+            renderer.render(scene, camera); // Re-render the scene explicitly
+        }
+
+
+        // --- Initialize Three.js Scene ---
+        function initThreeJs() {
+            const threeJsCanvas = document.getElementById('threeJsCanvas');
+
+            // Scene
+            scene = new THREE.Scene();
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, threeJsCanvas.clientWidth / threeJsCanvas.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 3);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: threeJsCanvas, antialias: true });
+            renderer.setSize(threeJsCanvas.clientWidth, threeJsCanvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping; // For better HDR display
+            renderer.toneMappingExposure = 1.0; // Adjust exposure if needed
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Animate damping
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 1;
+            controls.maxDistance = 10;
+
+            // Geometry
+            const geometry = new THREE.SphereGeometry(1, 64, 64); // Smooth sphere
+
+            // Material (Physically Based Rendering)
+            material = new THREE.MeshStandardMaterial({
+                color: 0xcccccc, // Base color, will be overridden by textures if provided
+                metalness: 0.5,   // Default metalness
+                roughness: 0.5,   // Default roughness
+                envMapIntensity: 1 // How much the environment map affects the material
+            });
+
+            // Mesh
+            sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+
+            // Load HDR Environment Map
+            const pmremGenerator = new THREE.PMREMGenerator(renderer);
+            pmremGenerator.compileEquirectangularShader();
+
+            new THREE.RGBELoader()
+                .setDataType(THREE.HalfFloatType) // Use HalfFloatType for better precision
+                .load('https://cdn.jsdelivr.net/gh/mrdoob/three.js@dev/examples/textures/equirectangular/venice_sunset_1k.hdr', function (hdrTexture) {
+                    const envMap = pmremGenerator.fromEquirectangular(hdrTexture).texture;
+                    scene.environment = envMap; // Apply to scene for global illumination
+                    material.envMap = envMap;   // Apply to material for reflections
+                    material.needsUpdate = true;
+                    hdrTexture.dispose();
+                    pmremGenerator.dispose();
+                    console.log("HDR environment map loaded.");
+                    // After HDR is loaded, update maps to apply them to material
+                    updateAllMaps(); // Call the globally accessible function
+                }, undefined, function (error) {
+                    console.error('An error occurred loading the HDR environment map:', error);
+                    // Fallback to a simple light if HDR fails
+                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                    scene.add(ambientLight);
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                    directionalLight.position.set(5, 5, 5);
+                    scene.add(directionalLight);
+                });
+
+            // Handle window resizing
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Start animation loop
+            animate();
+        }
+
+        // --- Three.js Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // Only required if controls.enableDamping or controls.autoRotate are set to true
+            renderer.render(scene, camera);
+        }
+
+        // --- Handle Window Resize for Three.js ---
+        function onWindowResize() {
+            const threeJsCanvas = document.getElementById('threeJsCanvas');
+            camera.aspect = threeJsCanvas.clientWidth / threeJsCanvas.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(threeJsCanvas.clientWidth, threeJsCanvas.clientHeight);
+        }
+
+
+        // --- Function to draw image and update all maps (2D and 3D) ---
+        function drawImageAndUpdateMaps(image) {
+            const originalCanvas = document.getElementById('originalCanvas');
+            const originalCtx = originalCanvas.getContext('2d');
+
+            // Clear previous content
+            originalCtx.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
+
+            // Resize canvas to fit image, maintaining aspect ratio
+            const aspectRatio = image.width / image.height;
+            const maxWidth = 400; // Max width for display
+            const maxHeight = 400; // Max height for display
+
+            let newWidth = image.width;
+            let newHeight = image.height;
+
+            if (newWidth > maxWidth) {
+                newWidth = maxWidth;
+                newHeight = newWidth / aspectRatio;
+            }
+            if (newHeight > maxHeight) {
+                newHeight = maxHeight;
+                newWidth = newHeight * aspectRatio;
+            }
+
+            originalCanvas.width = newWidth;
+            originalCanvas.height = newHeight;
+
+            // Draw the image onto the original canvas
+            originalCtx.drawImage(image, 0, 0, newWidth, newHeight);
+
+            // Store the current image for later processing by overlays
+            currentUploadedImage = image;
+
+            // Generate and display all maps (2D and update 3D)
+            updateAllMaps();
+        }
+
+
+        // --- Example Usage and Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const originalCanvas = document.getElementById('originalCanvas');
+            const imageUpload = document.getElementById('imageUpload');
+            const metalnessStrengthSlider = document.getElementById('metalnessStrengthSlider');
+            const metalnessStrengthValueSpan = document.getElementById('metalnessStrengthValue');
+            const roughnessSlider = document.getElementById('roughnessSlider');
+            const roughnessValueSpan = document.getElementById('roughnessValue');
+
+            // --- UI Overlays and their controls (from previous versions, ensuring they are hooked up) ---
+            // Get references to all overlay elements
+            const normalMapOverlay = document.getElementById('normalMapOverlay');
+            const closeNormalMapOverlay = document.getElementById('closeNormalMapOverlay');
+            const normalStrengthRange = document.getElementById('normalStrengthRange');
+            const normalStrengthValue = document.getElementById('normalStrengthValue');
+            const resetNormalStrengthButton = document.getElementById('resetNormalStrength');
+            const invertNormalY = document.getElementById('invertNormalY');
+
+            const roughnessMapOverlay = document.getElementById('roughnessMapOverlay');
+            const closeRoughnessMapOverlay = document.getElementById('closeRoughnessMapOverlay');
+            const roughnessInvertRange = document.getElementById('roughnessInvertRange');
+            const roughnessOverlayStrengthRange = document.getElementById('roughnessStrengthRange');
+            const roughnessOverlayStrengthValue = document.getElementById('roughnessStrengthValue');
+            const resetRoughnessMapButton = document.getElementById('resetRoughnessMap');
+
+            const aoMapOverlay = document.getElementById('aoMapOverlay');
+            const closeAoMapOverlay = document.getElementById('closeAoMapOverlay');
+            const aoIntensityRange = document.getElementById('aoIntensityRange');
+            const aoIntensityValue = document.getElementById('aoIntensityValue');
+            const resetAoMapButton = document.getElementById('resetAoMap');
+
+            const metallicMapOverlay = document.getElementById('metallicMapOverlay');
+            const closeMetallicMapOverlay = document.getElementById('closeMetallicMapOverlay');
+            const metallicInvertRange = document.getElementById('metallicInvertRange');
+            const metallicContrastRange = document.getElementById('metallicContrastRange');
+            const metallicContrastValue = document.getElementById('metallicContrastValue');
+            const resetMetallicMapButton = document.getElementById('resetMetallicMap');
+
+            const displacementMapOverlay = document.getElementById('displacementMapOverlay');
+            const closeDisplacementMapOverlay = document.getElementById('closeDisplacementMapOverlay');
+            const displacementStrengthRange = document.getElementById('displacementStrengthRange');
+            const displacementStrengthValue = document.getElementById('displacementStrengthValue');
+            const displacementInvertRange = document.getElementById('displacementInvertRange');
+            const resetDisplacementMapButton = document.getElementById('resetDisplacementMap');
+
+            const emissionMapOverlay = document.getElementById('emissionMapOverlay');
+            const closeEmissionMapOverlay = document.getElementById('closeEmissionMapOverlay');
+            const emissionStrengthRange = document.getElementById('emissionStrengthRange');
+            const emissionStrengthValue = document.getElementById('emissionStrengthValue');
+            const resetEmissionMapButton = document.getElementById('resetEmissionMap');
+
+
+            // --- Initial drawing on originalCanvas if no image is uploaded ---
+            function drawDefaultImage() {
+                const originalCtx = originalCanvas.getContext('2d');
+                originalCanvas.width = 400;
+                originalCanvas.height = 200;
+                originalCtx.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
+
+                originalCtx.fillStyle = 'black';
+                originalCtx.fillRect(0, 0, originalCanvas.width / 2, originalCanvas.height);
+                originalCtx.fillStyle = 'white';
+                originalCtx.fillRect(originalCanvas.width / 2, 0, originalCanvas.width / 2, originalCanvas.height);
+
+                originalCtx.font = '24px Inter, sans-serif';
+                originalCtx.textAlign = 'center';
+                originalCtx.textBaseline = 'middle';
+
+                originalCtx.fillStyle = '#ADD8E6';
+                originalCtx.fillText('Non-Metallic (0)', originalCanvas.width / 4, originalCanvas.height / 2);
+
+                originalCtx.fillStyle = '#FFB6C1';
+                originalCtx.fillText('Metallic (1)', originalCanvas.width * 3 / 4, originalCanvas.height / 2);
+
+                // Initialize Three.js and then update maps
+                initThreeJs();
+                // updateAllMaps() is now called inside RGBELoader.load callback
+            }
+
+            drawDefaultImage(); // Draw default image on load
+
+            // --- Event listener for image upload ---
+            imageUpload.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            drawImageAndUpdateMaps(img);
+                        };
+                        img.onerror = () => {
+                            console.error("Error loading image. Please ensure it's a valid image file.");
+                            alert("Error loading image. Please ensure it's a valid image file.");
+                            drawDefaultImage();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    drawDefaultImage();
+                }
+            });
+
+            // --- Event listeners for main sliders ---
+            metalnessStrengthSlider.addEventListener('input', () => {
+                metalnessStrengthValueSpan.textContent = metalnessStrengthSlider.value;
+                updateAllMaps();
+            });
+
+            roughnessSlider.addEventListener('input', () => {
+                roughnessValueSpan.textContent = roughnessSlider.value;
+                updateAllMaps();
+            });
+
+            // --- Event listeners for Normal Map Overlay ---
+            // Ensure buttons exist before adding listeners
+            const normalMapButton = document.getElementById('normalMapButton');
+            if (normalMapButton) {
+                normalMapButton.addEventListener('click', () => {
+                    normalMapOverlay.classList.remove('hidden');
+                    roughnessMapOverlay.classList.add('hidden');
+                    aoMapOverlay.classList.add('hidden');
+                    metallicMapOverlay.classList.add('hidden');
+                    displacementMapOverlay.classList.add('hidden');
+                    emissionMapOverlay.classList.add('hidden');
+
+                    normalStrengthRange.value = normalMapStrength;
+                    normalStrengthValue.textContent = normalMapStrength.toFixed(1);
+                    invertNormalY.checked = normalMapInvertY;
+                });
+            }
+            if (closeNormalMapOverlay) closeNormalMapOverlay.addEventListener('click', () => normalMapOverlay.classList.add('hidden'));
+            if (normalStrengthRange) {
+                normalStrengthRange.addEventListener('input', () => {
+                    normalMapStrength = parseFloat(normalStrengthRange.value);
+                    normalStrengthValue.textContent = normalMapStrength.toFixed(1);
+                    updateAllMaps();
+                });
+            }
+            if (invertNormalY) {
+                invertNormalY.addEventListener('change', () => {
+                    normalMapInvertY = invertNormalY.checked;
+                    updateAllMaps();
+                });
+            }
+            if (resetNormalStrengthButton) {
+                resetNormalStrengthButton.addEventListener('click', () => {
+                    normalMapStrength = 0.5; // Default value
+                    normalMapInvertY = false; // Default value
+                    normalStrengthRange.value = normalMapStrength;
+                    normalStrengthValue.textContent = normalMapStrength.toFixed(1);
+                    invertNormalY.checked = normalMapInvertY;
+                    updateAllMaps();
+                });
+            }
+
+
+            // --- Event listeners for Roughness Map Overlay ---
+            const roughnessMapButton = document.getElementById('roughnessMapButton');
+            if (roughnessMapButton) {
+                roughnessMapButton.addEventListener('click', () => {
+                    roughnessMapOverlay.classList.remove('hidden');
+                    normalMapOverlay.classList.add('hidden');
+                    aoMapOverlay.classList.add('hidden');
+                    metallicMapOverlay.classList.add('hidden');
+                    displacementMapOverlay.classList.add('hidden');
+                    emissionMapOverlay.classList.add('hidden');
+
+                    roughnessInvertRange.checked = roughnessInvert;
+                    roughnessOverlayStrengthRange.value = roughnessStrength;
+                    roughnessOverlayStrengthValue.textContent = roughnessStrength.toFixed(2);
+                });
+            }
+            if (closeRoughnessMapOverlay) closeRoughnessMapOverlay.addEventListener('click', () => roughnessMapOverlay.classList.add('hidden'));
+            if (roughnessInvertRange) {
+                roughnessInvertRange.addEventListener('change', () => {
+                    roughnessInvert = roughnessInvertRange.checked;
+                    updateAllMaps();
+                });
+            }
+            if (roughnessOverlayStrengthRange) {
+                roughnessOverlayStrengthRange.addEventListener('input', () => {
+                    roughnessStrength = parseFloat(roughnessOverlayStrengthRange.value);
+                    roughnessOverlayStrengthValue.textContent = roughnessStrength.toFixed(2);
+                    updateAllMaps();
+                });
+            }
+            if (resetRoughnessMapButton) {
+                resetRoughnessMapButton.addEventListener('click', () => {
+                    roughnessInvert = false; // Default
+                    roughnessStrength = 0.5; // Default
+                    roughnessInvertRange.checked = roughnessInvert;
+                    roughnessOverlayStrengthRange.value = roughnessStrength;
+                    roughnessOverlayStrengthValue.textContent = roughnessStrength.toFixed(2);
+                    updateAllMaps();
+                });
+            }
+
+
+            // --- Event listeners for AO Map Overlay ---
+            const aoMapButton = document.getElementById('aoMapButton');
+            if (aoMapButton) {
+                aoMapButton.addEventListener('click', () => {
+                    aoMapOverlay.classList.remove('hidden');
+                    normalMapOverlay.classList.add('hidden');
+                    roughnessMapOverlay.classList.add('hidden');
+                    metallicMapOverlay.classList.add('hidden');
+                    displacementMapOverlay.classList.add('hidden');
+                    emissionMapOverlay.classList.add('hidden');
+
+                    aoIntensityRange.value = aoMapIntensity;
+                    aoIntensityValue.textContent = aoMapIntensity.toFixed(1);
+                });
+            }
+            if (closeAoMapOverlay) closeAoMapOverlay.addEventListener('click', () => aoMapOverlay.classList.add('hidden'));
+            if (aoIntensityRange) {
+                aoIntensityRange.addEventListener('input', () => {
+                    aoMapIntensity = parseFloat(aoIntensityRange.value);
+                    aoIntensityValue.textContent = aoIntensityRange.value; // Corrected to use value directly
+                    updateAllMaps();
+                });
+            }
+            if (resetAoMapButton) {
+                resetAoMapButton.addEventListener('click', () => {
+                    aoMapIntensity = 2.0; // Default
+                    aoIntensityRange.value = aoMapIntensity;
+                    aoIntensityValue.textContent = aoMapIntensity.toFixed(1);
+                    updateAllMaps();
+                });
+            }
+
+
+            // --- Event listeners for Metallic Map Overlay ---
+            const metallicMapButton = document.getElementById('metallicMapButton');
+            if (metallicMapButton) {
+                metallicMapButton.addEventListener('click', () => {
+                    metallicMapOverlay.classList.remove('hidden');
+                    normalMapOverlay.classList.add('hidden');
+                    roughnessMapOverlay.classList.add('hidden');
+                    aoMapOverlay.classList.add('hidden');
+                    displacementMapOverlay.classList.add('hidden');
+                    emissionMapOverlay.classList.add('hidden');
+
+                    metallicInvertRange.checked = metallicInvert;
+                    metallicContrastRange.value = metallicContrast;
+                    metallicContrastValue.textContent = metallicContrast.toFixed(1);
+                });
+            }
+            if (closeMetallicMapOverlay) closeMetallicMapOverlay.addEventListener('click', () => metallicMapOverlay.classList.add('hidden'));
+            if (metallicInvertRange) {
+                metallicInvertRange.addEventListener('change', () => {
+                    metallicInvert = metallicInvertRange.checked;
+                    updateAllMaps();
+                });
+            }
+            if (metallicContrastRange) {
+                metallicContrastRange.addEventListener('input', () => {
+                    metallicContrast = parseFloat(metallicContrastRange.value);
+                    metallicContrastValue.textContent = metallicContrast.toFixed(1);
+                    updateAllMaps();
+                });
+            }
+            if (resetMetallicMapButton) {
+                resetMetallicMapButton.addEventListener('click', () => {
+                    metallicInvert = false; // Default
+                    metallicContrast = 1.0; // Default
+                    metallicInvertRange.checked = metallicInvert;
+                    metallicContrastRange.value = metallicContrast;
+                    metallicContrastValue.textContent = metallicContrast.toFixed(1);
+                    updateAllMaps();
+                });
+            }
+
+
+            // --- Event listeners for Displacement Map Overlay ---
+            const displacementMapButton = document.getElementById('displacementMapButton');
+            if (displacementMapButton) {
+                displacementMapButton.addEventListener('click', () => {
+                    displacementMapOverlay.classList.remove('hidden');
+                    normalMapOverlay.classList.add('hidden');
+                    roughnessMapOverlay.classList.add('hidden');
+                    aoMapOverlay.classList.add('hidden');
+                    metallicMapOverlay.classList.add('hidden');
+                    emissionMapOverlay.classList.add('hidden');
+
+                    displacementStrengthRange.value = displacementStrength;
+                    displacementStrengthValue.textContent = displacementStrength.toFixed(2);
+                    displacementInvertRange.checked = displacementInvert;
+
+                    // Wireframe visualization for displacement
+                    if (material) {
+                        material.wireframe = true;
+                        material.color.set(0x22c55e); // Green
+                        material.needsUpdate = true;
+                        renderer.render(scene, camera);
+                    }
+                });
+            }
+            if (closeDisplacementMapOverlay) {
+                closeDisplacementMapOverlay.addEventListener('click', () => {
+                    displacementMapOverlay.classList.add('hidden');
+                    if (material) {
+                        material.wireframe = false;
+                        material.color.set(0xcccccc); // Restore default color
+                        material.needsUpdate = true;
+                        renderer.render(scene, camera);
+                    }
+                });
+            }
+            if (displacementStrengthRange) {
+                displacementStrengthRange.addEventListener('input', () => {
+                    displacementStrength = parseFloat(displacementStrengthRange.value);
+                    displacementStrengthValue.textContent = displacementStrength.toFixed(2);
+                    updateAllMaps();
+                });
+            }
+            if (displacementInvertRange) {
+                displacementInvertRange.addEventListener('change', () => {
+                    displacementInvert = displacementInvertRange.checked;
+                    updateAllMaps();
+                });
+            }
+            if (resetDisplacementMapButton) {
+                resetDisplacementMapButton.addEventListener('click', () => {
+                    displacementStrength = 0.01; // Default
+                    displacementInvert = false; // Default
+                    displacementStrengthRange.value = displacementStrength;
+                    displacementStrengthValue.textContent = displacementStrength.toFixed(2);
+                    displacementInvertRange.checked = displacementInvert;
+                    updateAllMaps();
+                });
+            }
+
+
+            // --- Event listeners for Emission Map Overlay ---
+            const emissionMapButton = document.getElementById('emissionMapButton');
+            if (emissionMapButton) {
+                emissionMapButton.addEventListener('click', () => {
+                    emissionMapOverlay.classList.remove('hidden');
+                    normalMapOverlay.classList.add('hidden');
+                    roughnessMapOverlay.classList.add('hidden');
+                    aoMapOverlay.classList.add('hidden');
+                    metallicMapOverlay.classList.add('hidden');
+                    displacementMapOverlay.classList.add('hidden');
+
+                    emissionStrengthRange.value = emissionIntensity;
+                    emissionStrengthValue.textContent = emissionIntensity.toFixed(1);
+                });
+            }
+            if (closeEmissionMapOverlay) closeEmissionMapOverlay.addEventListener('click', () => emissionMapOverlay.classList.add('hidden'));
+            if (emissionStrengthRange) {
+                emissionStrengthRange.addEventListener('input', () => {
+                    emissionIntensity = parseFloat(emissionStrengthRange.value);
+                    emissionStrengthValue.textContent = emissionIntensity.toFixed(1);
+                    updateAllMaps();
+                });
+            }
+            if (resetEmissionMapButton) {
+                resetEmissionMapButton.addEventListener('click', () => {
+                    emissionIntensity = 1.0; // Default
+                    emissionStrengthRange.value = emissionIntensity;
+                    emissionStrengthValue.textContent = emissionIntensity.toFixed(1);
+                    updateAllMaps();
+                });
+            }
+
+
+            // --- General Logic for Texture Buttons (PBR, Color, etc.) ---
+            document.querySelectorAll('.texture-button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const mapType = btn.dataset.mapType;
+                    applyTextureToModel(mapType);
+                });
+            });
+
+            // Function to apply a specific texture to the model
+            function applyTextureToModel(mapType) {
+                // Reset all map properties to null first to ensure only the selected map is visible
+                material.map = null;
+                material.normalMap = null;
+                material.roughnessMap = null;
+                material.aoMap = null;
+                material.metalnessMap = null;
+                material.displacementMap = null;
+                material.emissiveMap = null; // New emission map
+
+                // Reset wireframe and color if they were changed by displacement overlay
+                material.wireframe = false;
+                material.color.set(0xcccccc); // Default color for PBR preview
+
+                // Apply the selected map
+                switch (mapType) {
+                    case 'pbr':
+                        // Apply all generated maps for a full PBR view
+                        if (currentUploadedImage) {
+                            material.map = new THREE.CanvasTexture(createBaseCanvasFromImage(currentUploadedImage)); // Base color map
+                            material.map.needsUpdate = true;
+                        } else {
+                            material.map = null; // No base color map if no image
+                        }
+                        material.normalMap = normalTexture;
+                        material.roughnessMap = roughnessTexture;
+                        material.aoMap = aoTexture;
+                        material.metalnessMap = metalnessTexture;
+                        material.displacementMap = displacementTexture;
+                        material.emissiveMap = emissionTexture; // Apply emission map
+                        material.emissiveIntensity = emissionIntensity; // Apply emission intensity
+                        break;
+                    case 'color':
+                        if (currentUploadedImage) {
+                            material.map = new THREE.CanvasTexture(createBaseCanvasFromImage(currentUploadedImage));
+                            material.map.needsUpdate = true;
+                        } else {
+                            material.map = null; // No base color map if no image
+                        }
+                        break;
+                    case 'roughness':
+                        material.map = roughnessTexture; // Show roughness map as base color
+                        material.roughnessMap = roughnessTexture;
+                        break;
+                    case 'normal':
+                        material.map = normalTexture; // Show normal map as base color
+                        material.normalMap = normalTexture;
+                        break;
+                    case 'ao':
+                        material.map = aoTexture; // Show AO map as base color
+                        material.aoMap = aoTexture;
+                        break;
+                    case 'metallic':
+                        material.map = metalnessTexture; // Show metallic map as base color
+                        material.metalnessMap = metalnessTexture;
+                        break;
+                    case 'displacement':
+                        material.map = displacementTexture; // Show displacement map as base color
+                        material.displacementMap = displacementTexture;
+                        material.wireframe = true; // Show wireframe for displacement
+                        material.color.set(0x22c55e); // Green color for wireframe
+                        break;
+                    case 'emission': // New case for emission map
+                        material.map = emissionTexture; // Show emission map as base color
+                        material.emissiveMap = emissionTexture;
+                        material.emissiveIntensity = emissionIntensity;
+                        material.emissive.setHex(0xFFFFFF); // Ensure emissive color is white to show map colors
+                        break;
+                }
+                material.needsUpdate = true;
+                renderer.render(scene, camera); // Re-render the scene
+            }
+        });
+    </script>
+</body>
+</html>

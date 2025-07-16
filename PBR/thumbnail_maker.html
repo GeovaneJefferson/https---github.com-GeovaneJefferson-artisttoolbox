@@ -1,0 +1,2174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thumbnail Creator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* Custom CSS Variables for Layout */
+        :root {
+            --header-height: 64px; /* Approximate height of header based on p-4 */
+            --footer-height: 48px; /* Fixed height of colorPaletteBar */
+            --main-padding-lg: 1.5rem; /* Corresponds to lg:p-6 (24px) for main content padding */
+        }
+
+        /* Custom font import */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* Base body styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Ensure body takes full viewport height */
+            overflow: hidden; /* Prevent body scrolling */
+        }
+
+        /* Header styling */
+        header {
+            height: var(--header-height); /* Explicit height to prevent layout shifts */
+            flex-shrink: 0; /* Prevent header from shrinking */
+        }
+
+        /* Canvas styling */
+        #thumbnailCanvas {
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+            background-color: #f0f0f0; /* Light gray background for empty canvas */
+            cursor: grab;
+            touch-action: none; /* Disable default touch actions for custom dragging */
+        }
+        #thumbnailCanvas.dragging {
+            cursor: grabbing;
+        }
+
+        /* Custom slider styles matching page.html */
+        input[type="range"] {
+            -webkit-appearance: none; /* Hides the default slider */
+            appearance: none;
+            width: 100%; /* Full-width */
+            height: 8px; /* Specify a height */
+            background: #e0e0e0; /* Grey background */
+            border-radius: 5px;
+            outline: none; /* Remove outline */
+            opacity: 0.7; /* Set transparency */
+            -webkit-transition: .2s; /* 0.2 seconds transition on hover */
+            transition: opacity .2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; /* Hides the default slider thumb */
+            appearance: none;
+            width: 16px; /* Set a specific slider handle width */
+            height: 16px; /* Slider handle height */
+            background: #6366F1; /* Blue background */
+            border-radius: 50%; /* Fully rounded slider handle */
+            cursor: pointer; /* Cursor on hover */
+            border: 2px solid #fff; /* White border */
+            box-shadow: 0 0 2px rgba(0,0,0,0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px; /* Set a specific slider handle width */
+            height: 16px; /* Slider handle height */
+            background: #6366F1; /* Blue background */
+            border-radius: 50%; /* Fully rounded slider handle */
+            cursor: pointer; /* Cursor on hover */
+            border: 2px solid #fff; /* White border */
+            box-shadow: 0 0 2px rgba(0,0,0,0.3);
+        }
+
+        /* Ensure sidebars are scrollable if content overflows */
+        aside {
+            overflow-y: auto;
+            /* Height is managed by flex-grow in main, but overflow-y-auto is still needed */
+        }
+
+        /* Bottom color palette styles (now a true bottom panel, not overlay) */
+        #colorPaletteBar {
+            height: var(--footer-height); /* Fixed height for the bar */
+            background-color: #ffffff;
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            flex-shrink: 0; /* Prevent it from shrinking */
+            z-index: 1000; /* Ensure it's on top */
+        }
+
+        #predefinedColorSwatches {
+            overflow-x: auto; /* Enable horizontal scrolling */
+            white-space: nowrap; /* Prevent wrapping */
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            padding-bottom: 5px; /* Space for scrollbar */
+            flex-grow: 1; /* Allow it to take available space */
+        }
+
+        /* Color swatch styles matching page.html for size, border, and shadow */
+        .color-swatch {
+            width: 40px; /* Larger size from page.html */
+            height: 40px; /* Larger size from page.html */
+            border-radius: 0.375rem; /* Keeping rounded-md for consistency with app's design */
+            border: 2px solid #e5e7eb; /* From page.html */
+            cursor: pointer;
+            transition: transform 0.2s; /* From page.html */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* From page.html */
+            flex-shrink: 0; /* Prevent swatches from shrinking */
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        /* Custom styling for the color input to make it more integrated */
+        #paletteColorInput {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 36px; /* Slightly larger */
+            height: 36px; /* Slightly larger */
+            border: 1px solid rgba(0, 0, 0, 0.2); /* Add a subtle border */
+            background: none;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 0.375rem;
+            overflow: hidden; /* Hide default browser controls inside */
+        }
+
+        #paletteColorInput::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        #paletteColorInput::-webkit-color-swatch {
+            border: none; /* Remove inner border */
+            border-radius: 0.375rem;
+        }
+
+        #paletteColorInput::-moz-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        #paletteColorInput::-moz-color-swatch {
+            border: none; /* Remove inner border */
+            border-radius: 0.375rem;
+        }
+
+        /* Main content area now uses flex-grow to fill space */
+        main {
+            flex-grow: 1; /* Allows main to take all available space */
+            overflow: auto; /* Enables scrolling for main content if it overflows */
+            /* Padding is already applied by Tailwind classes p-4 lg:p-6 */
+        }
+        @media (min-width: 1024px) { /* lg breakpoint */
+            main {
+                /* height: auto; Removed, flex-grow handles it */
+            }
+        }
+
+        /* Center Section: Canvas/Preview Area */
+        main section {
+            flex-grow: 1;
+            flex-shrink: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e2e8f0; /* bg-gray-200 */
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1rem; /* p-4 */
+            position: relative;
+            overflow: hidden;
+
+            /* New: Ensure a stable height for the canvas container on large screens */
+            min-height: 400px; /* Prevent collapse on smaller screens */
+
+            @media (min-width: 1024px) { /* lg breakpoint */
+                /* Calculate height based on viewport minus header, footer, and main's top/bottom padding */
+                height: calc(100vh - var(--header-height) - var(--footer-height) - (2 * var(--main-padding-lg)));
+            }
+        }
+
+        /* Dropdown specific styles */
+        #textSettingsDropdown, #imageSettingsDropdown {
+            position: absolute;
+            top: var(--header-height); /* Position below the header */
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            z-index: 999; /* Below header, above main content */
+            width: 300px; /* Fixed width for the dropdown */
+            /* Max height to fit viewport, accounting for header, footer, and main padding */
+            max-height: calc(100vh - var(--header-height) - var(--footer-height) - (2 * var(--main-padding-lg)));
+            overflow-y: auto; /* Scroll if content overflows */
+        }
+
+        #textSettingsDropdown { left: 0; }
+        #imageSettingsDropdown { left: 160px; /* Adjust based on textSettingsBtn width */ }
+
+        /* Styles for suggested thumbnail previews */
+        .thumbnail-preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .thumbnail-preview-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.1s ease-in-out;
+        }
+        .thumbnail-preview-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .thumbnail-preview-item canvas {
+            display: block;
+            border-radius: 0.375rem;
+        }
+        .thumbnail-preview-item span {
+            font-size: 0.75rem; /* text-xs */
+            color: #6b7280; /* text-gray-500 */
+            padding: 0.25rem 0;
+        }
+
+        /* Styles for recent images */
+        .recent-image-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.1s ease-in-out;
+            width: 80px; /* Fixed width for recent image previews */
+            height: 60px; /* Fixed height for recent image previews */
+            flex-shrink: 0;
+        }
+        .recent-image-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .recent-image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensure image covers the area */
+            display: block;
+            border-radius: 0.375rem;
+        }
+        .recent-image-item span {
+            font-size: 0.6rem; /* Smaller text for file name */
+            color: #6b7280;
+            padding: 0.1rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+
+        @media (min-width: 1024px) { /* lg breakpoint */
+            aside {
+                /* Make aside fill available vertical space and scroll if content overflows */
+                height: calc(100vh - var(--header-height) - var(--footer-height) - (2 * var(--main-padding-lg)));
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <!-- Header/Navigation Bar -->
+    <header class="bg-white shadow-md p-4 flex items-center justify-between flex-shrink-0 relative">
+        <div class="flex items-center space-x-4">
+            <button class="flex items-center text-gray-700 hover:text-gray-900 font-medium rounded-lg px-3 py-2 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H16a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                Leave Editor
+            </button>
+            <!-- Text Settings Button -->
+            <button id="textSettingsBtn" class="flex items-center text-gray-700 hover:text-gray-900 font-medium rounded-lg px-3 py-2 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4a2 2 0 012 2v2h2a2 2 0 012 2v4a2 2 0 01-2 2h-4a2 2 0 01-2-2v-2H6a2 2 0 01-2-2V4zm2 0h4v2H6V4zm6 4h2v4h-2V8z" clip-rule="evenodd" />
+                </svg>
+                Text Settings
+            </button>
+            <!-- New Image Settings Button -->
+            <button id="imageSettingsBtn" class="flex items-center text-gray-700 hover:text-gray-900 font-medium rounded-lg px-3 py-2 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-4 3 3 5-5V5h-2v.586l-3.293 3.293L9 6.586 4.707 11H4v-6h12v10z" clip-rule="evenodd" />
+                </svg>
+                Image Settings
+            </button>
+            <!-- Simplified Text Movement Lock Section (Moved to header) -->
+            <div class="flex items-center space-x-2">
+                <button id="toggleTextMovementLockBtn" class="p-3 bg-indigo-600 text-white rounded-full shadow-md hover:bg-indigo-700 transition-colors duration-200 text-lg">
+                    <i class="fas fa-arrows-alt"></i> <!-- Default: diagonal -->
+                </button>
+                <p id="currentLockStatus" class="text-xs text-gray-500">Current: Diagonal</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button id="resetBtn" class="flex items-center text-gray-700 hover:text-gray-900 font-medium rounded-lg px-3 py-2 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005 7V5a1 1 0 012 0v2a1 1 0 001 1h2a1 1 0 001-1V3a1 1 0 112 0v2a3 3 0 01-3 3H5a3 3 0 01-3-3V3a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Reset
+            </button>
+            <div class="relative inline-block text-left">
+                <button id="downloadBtn" class="flex items-center bg-indigo-600 text-white font-medium rounded-lg px-4 py-2 hover:bg-indigo-700 transition-colors duration-200 shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 12.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414zM10 3a1 1 0 011 1v7a1 1 0 11-2 0V4a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                    Download
+                </button>
+                <div id="downloadOptions" class="origin-top-right absolute right-0 mt-2 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none hidden">
+                    <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="download-button">
+                        <a href="#" id="downloadPng" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" role="menuitem">PNG</a>
+                        <a href="#" id="downloadJpeg" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" role="menuitem">JPEG</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Text Settings Dropdown -->
+        <div id="textSettingsDropdown" class="hidden">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Text 1: "POV" Settings</h3>
+
+            <div class="mb-4">
+                <label for="textContent" class="block text-sm font-medium text-gray-700 mb-1">Text</label>
+                <textarea id="textContent" class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-y" rows="3">POV</textarea>
+            </div>
+
+            <div class="mb-4">
+                <label for="fontFamily" class="block text-sm font-medium text-gray-700 mb-1">Font Family</label>
+                <select id="fontFamily" class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="Arial">Arial</option>
+                    <option value="Roboto">Roboto</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Inter, sans-serif">Inter</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label for="fontSize" class="block text-sm font-medium text-gray-700 mb-1">Font Size</label>
+                <div class="flex items-center space-x-2">
+                    <input type="range" id="fontSize" min="10" max="500" value="200" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span id="fontSizeValue" class="text-sm text-gray-600 w-12 text-right">200px</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="fontWeight" class="block text-sm font-medium text-gray-700 mb-1">Font Weight</label>
+                <div class="flex items-center space-x-2">
+                    <input type="range" id="fontWeight" min="100" max="900" step="100" value="700" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span id="fontWeightValue" class="text-sm text-gray-600 w-12 text-right">700</span>
+                </div>
+            </div>
+
+            <div>
+                <label for="textOpacity" class="block text-sm font-medium text-gray-700 mb-1">Opacity</label>
+                <div class="flex items-center space-x-2">
+                    <input type="range" id="textOpacity" min="0" max="100" value="100" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span id="textOpacityValue" class="text-sm text-gray-600 w-12 text-right">100%</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                    <label for="textX" class="block text-sm font-medium text-gray-700 mb-1">Text X</label>
+                    <input type="number" id="textX" value="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label for="textY" class="block text-sm font-medium text-gray-700 mb-1">Text Y</label>
+                    <input type="number" id="textY" value="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Settings Dropdown -->
+        <div id="imageSettingsDropdown" class="hidden">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Image Settings</h3>
+            <!-- Canvas Size Presets Section (Moved here) -->
+            <div class="border-b border-gray-200 pb-4 mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Canvas Size</h3>
+                <div class="mb-4">
+                    <label for="presetSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Preset</label>
+                    <select id="presetSelect" class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="custom" data-aspect-ratio="1.7777777777777777">Custom (16:9 Default)</option>
+                        <option value="youtube" data-aspect-ratio="1.7777777777777777">YouTube (16:9)</option>
+                        <option value="facebook-post" data-aspect-ratio="1.9047619047619047">Facebook Post (1200x630)</option>
+                        <option value="twitter-post" data-aspect-ratio="1.7777777777777777">Twitter Post (1200x675)</option>
+                        <option value="linkedin-post" data-aspect-ratio="1.9138755980861244">LinkedIn Post (1200x627)</option>
+                        <option value="pinterest-pin" data-aspect-ratio="0.6666666666666666">Pinterest Pin (1000x1500)</option>
+                        <option value="instagram-square" data-aspect-ratio="1">Instagram (1:1)</option>
+                        <option value="instagram-portrait" data-aspect-ratio="0.8">Instagram (4:5)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-between space-x-2 mb-4">
+                <button id="fitImageBtnDropdown" class="flex-1 px-3 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors duration-200 text-sm">Fit Image</button>
+                <button id="fillImageBtnDropdown" class="flex-1 px-3 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors duration-200 text-sm">Fill Image</button>
+            </div>
+            <div class="mb-4">
+                <label for="imageZoomDropdown" class="block text-sm font-medium text-gray-700 mb-1">Image Zoom</label>
+                <div class="flex items-center space-x-2">
+                    <input type="range" id="imageZoomDropdown" min="0.1" max="5" step="0.1" value="1" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span id="imageZoomValueDropdown" class="text-sm text-gray-600 w-12 text-right">100%</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="imageXDropdown" class="block text-sm font-medium text-gray-700 mb-1">Image X</label>
+                    <input type="number" id="imageXDropdown" value="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label for="imageYDropdown" class="block text-sm font-medium text-gray-700 mb-1">Image Y</label>
+                    <input type="number" id="imageYDropdown" value="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                </div>
+            </div>
+            <!-- New: Background Blur -->
+            <div class="mb-4 mt-4">
+                <label for="imageBlurDropdown" class="block text-sm font-medium text-gray-700 mb-1">Background Blur</label>
+                <div class="flex items-center space-x-2">
+                    <input type="range" id="imageBlurDropdown" min="0" max="20" step="0.1" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span id="imageBlurValueDropdown" class="text-sm text-gray-600 w-12 text-right">0px</span>
+                </div>
+            </div>
+            <!-- New: Background Darken -->
+            <div class="mb-4">
+                <label for="imageDarkenDropdown" class="block text-sm font-medium text-gray-700 mb-1">Background Darken</label>
+                <div class="flex items-center space-x-2">
+                    <input type="range" id="imageDarkenDropdown" min="0" max="100" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    <span id="imageDarkenValueDropdown" class="text-sm text-gray-600 w-12 text-right">0%</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area - Responsive Flex Container -->
+    <main class="flex flex-grow flex-col lg:flex-row p-4 lg:p-6 space-y-4 lg:space-y-0 lg:space-x-6">
+        <!-- New Left Section (formerly Right Panel) -->
+        <aside class="w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg p-6 flex flex-col">
+            <!-- Recent Images Section -->
+            <div class="pb-4 border-b border-gray-200 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Images</h3>
+                <div id="recentImagesContainer" class="flex flex-wrap gap-2 justify-center">
+                    <p class="text-sm text-gray-500" id="noRecentImages">No recent images.</p>
+                </div>
+            </div>
+
+            <!-- Background Color for Contrast Section (Moved to top) -->
+            <div class="pb-4 border-b border-gray-200 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Background Color for Contrast</h3>
+                <div class="mb-2">
+                    <span class="block text-sm font-medium text-gray-700">Detected Image Color:</span>
+                    <span id="detectedImageColorDisplay" class="inline-block w-6 h-6 border border-gray-300 rounded-sm align-middle mr-2"></span>
+                    <span id="detectedImageColorValue" class="text-sm text-gray-600">N/A</span>
+                </div>
+                <div class="mb-4">
+                    <label for="contrastBgColorInput" class="block text-sm font-medium text-gray-700 mb-1">Override Contrast Background:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="color" id="contrastBgColorInput" value="#f0f0f0" class="w-10 h-10 border border-gray-300 rounded-md cursor-pointer">
+                        <input type="text" id="contrastBgColorHexInput" value="#f0f0f0" class="flex-grow p-2 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Color Contrast Analyzer Section -->
+            <div class="pb-4 border-b border-gray-200 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Color Contrast Analyzer</h3>
+                <div class="mb-2">
+                    <span class="block text-sm font-medium text-gray-700">Text Color:</span>
+                    <span id="contrastTextColor" class="inline-block w-6 h-6 border border-gray-300 rounded-sm align-middle mr-2"></span>
+                    <span id="contrastTextColorValue" class="text-sm text-gray-600"></span>
+                </div>
+                <div class="mb-2">
+                    <span class="block text-sm font-medium text-gray-700">Background Under Text:</span>
+                    <span id="contrastBgColorDisplay" class="inline-block w-6 h-6 border border-gray-300 rounded-sm align-middle mr-2"></span>
+                    <span id="contrastBgColorValue" class="text-sm text-gray-600"></span>
+                </div>
+                <div class="mb-2">
+                    <span class="block text-sm font-medium text-gray-700">Contrast Ratio:</span>
+                    <span id="contrastRatioValue" class="text-base font-bold text-gray-900">N/A</span>
+                </div>
+                <div class="text-sm">
+                    <p>WCAG AA: <span id="wcagAAResult" class="font-semibold"></span></p>
+                    <p>WCAG AAA: <span id="wcagAAAResult" class="font-semibold"></span></p>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">
+                    Note: Contrast is calculated against the *average color* of the image area directly under the text.
+                    For precise control over contrast, consider adding a solid or semi-transparent background shape directly behind your text.
+                </p>
+            </div>
+        </aside>
+
+        <!-- Center Section: Canvas/Preview Area -->
+        <section class="flex-1 flex items-center justify-center bg-gray-200 rounded-xl p-4 relative overflow-hidden">
+            <canvas id="thumbnailCanvas" class="max-w-full max-h-full"></canvas>
+            <!-- Hidden input for image upload -->
+            <input type="file" id="imageUpload" accept="image/*" class="hidden">
+            <button id="uploadImageBtn" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 hover:text-gray-700 transition-colors duration-200 bg-gray-100 bg-opacity-75 rounded-xl cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 0 01-.88-7.903A5 0 0115.9 6L16 6a3 0 013 3v10a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h1" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span class="text-lg font-medium">Click or Drag Image Here (PNG, JPG, SVG)</span>
+            </button>
+        </section>
+
+        <!-- New Right Section for Suggested Thumbnails -->
+        <aside class="w-full lg:w-80 flex-shrink-0 bg-white rounded-xl shadow-lg p-6 flex flex-col">
+            <div class="pb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Suggested Thumbnail Previews</h3>
+                <div id="suggestedThumbnailsContainer" class="thumbnail-preview-container">
+                    <!-- Thumbnail previews will be dynamically generated here -->
+                    <p class="text-sm text-gray-500" id="noImageForSuggestions">Upload an image to see suggestions.</p>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Bottom Color Palette Bar -->
+    <footer id="colorPaletteBar">
+        <span class="text-sm font-medium text-gray-700 mr-4">Text Color:</span>
+        <div class="flex items-center space-x-2 mr-4">
+            <input type="color" id="paletteColorInput" value="#ffffff">
+            <input type="text" id="paletteColorHexInput" value="#FFFFFF" class="w-24 p-1 border border-gray-300 rounded-md text-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div id="predefinedColorSwatches" class="flex gap-2">
+            <!-- Dynamically populated by JavaScript -->
+        </div>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('thumbnailCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageUpload = document.getElementById('imageUpload');
+        const uploadImageBtn = document.getElementById('uploadImageBtn');
+        
+        // Text Settings Dropdown elements
+        const textSettingsBtn = document.getElementById('textSettingsBtn');
+        const textSettingsDropdown = document.getElementById('textSettingsDropdown');
+        const textContentInput = document.getElementById('textContent');
+        const fontFamilySelect = document.getElementById('fontFamily');
+        const fontSizeInput = document.getElementById('fontSize');
+        const fontSizeValueSpan = document.getElementById('fontSizeValue');
+        const fontWeightInput = document.getElementById('fontWeight');
+        const fontWeightValueSpan = document.getElementById('fontWeightValue');
+        const textOpacityInput = document.getElementById('textOpacity');
+        const textOpacityValueSpan = document.getElementById('textOpacityValue');
+        const textXInput = document.getElementById('textX');
+        const textYInput = document.getElementById('textY');
+
+        // Text Movement Lock elements
+        const toggleTextMovementLockBtn = document.getElementById('toggleTextMovementLockBtn');
+        const currentLockStatus = document.getElementById('currentLockStatus');
+
+        // Image Settings Dropdown elements
+        const imageSettingsBtn = document.getElementById('imageSettingsBtn');
+        const imageSettingsDropdown = document.getElementById('imageSettingsDropdown');
+        const fitImageBtnDropdown = document.getElementById('fitImageBtnDropdown');
+        const fillImageBtnDropdown = document.getElementById('fillImageBtnDropdown');
+        const imageZoomInputDropdown = document.getElementById('imageZoomDropdown');
+        const imageZoomValueSpanDropdown = document.getElementById('imageZoomValueDropdown');
+        const imageXInputDropdown = document.getElementById('imageXDropdown');
+        const imageYInputDropdown = document.getElementById('imageYDropdown');
+        const presetSelect = document.getElementById('presetSelect'); // Moved here
+        const imageBlurInputDropdown = document.getElementById('imageBlurDropdown'); // New
+        const imageBlurValueSpanDropdown = document.getElementById('imageBlurValueDropdown'); // New
+        const imageDarkenInputDropdown = document.getElementById('imageDarkenDropdown'); // New
+        const imageDarkenValueSpanDropdown = document.getElementById('imageDarkenValueDropdown'); // New
+
+
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadOptions = document.getElementById('downloadOptions'); // New: Download options dropdown
+        const downloadPng = document.getElementById('downloadPng');
+        const downloadJpeg = document.getElementById('downloadJpeg');
+
+        const resetBtn = document.getElementById('resetBtn');
+        
+        // Color Contrast Analyzer elements
+        const detectedImageColorDisplay = document.getElementById('detectedImageColorDisplay');
+        const detectedImageColorValue = document.getElementById('detectedImageColorValue');
+        const contrastBgColorInput = document.getElementById('contrastBgColorInput');
+        const contrastBgColorHexInput = document.getElementById('contrastBgColorHexInput');
+        const contrastTextColor = document.getElementById('contrastTextColor');
+        const contrastTextColorValue = document.getElementById('contrastTextColorValue');
+        const contrastBgColorDisplay = document.getElementById('contrastBgColorDisplay');
+        const contrastBgColorValueSpan = document.getElementById('contrastBgColorValue');
+        const contrastRatioValue = document.getElementById('contrastRatioValue');
+        const wcagAAResult = document.getElementById('wcagAAResult');
+        const wcagAAAResult = document.getElementById('wcagAAAResult');
+        
+        // Bottom Color Palette elements
+        const paletteColorInput = document.getElementById('paletteColorInput');
+        const paletteColorHexInput = document.getElementById('paletteColorHexInput'); // New hex input
+        const predefinedColorSwatches = document.getElementById('predefinedColorSwatches');
+
+        // Suggested Thumbnail Previews elements
+        const suggestedThumbnailsContainer = document.getElementById('suggestedThumbnailsContainer');
+        const noImageForSuggestions = document.getElementById('noImageForSuggestions');
+
+        // Recent Images elements
+        const recentImagesContainer = document.getElementById('recentImagesContainer');
+        const noRecentImagesMessage = document.getElementById('noRecentImages');
+
+        const MAX_RECENT_IMAGES = 5;
+        let recentImages = []; // Stores { id, dataURL, name }
+
+
+        let currentImage = new Image();
+        let textProperties = {
+            content: 'POV',
+            fontFamily: 'Arial', // Changed default to Arial
+            fontSize: 200, // in pixels
+            fontWeight: 700,
+            color: '#ffffff',
+            opacity: 1, // 0 to 1
+            x: 0, // Text X position on canvas
+            y: 0, // Text Y position on canvas
+            width: 0, // Calculated text width (max width of a line)
+            height: 0, // Calculated total text block height
+            lineHeight: 1.2 // Multiplier for line spacing
+        };
+
+        let imageProperties = {
+            x: 0,
+            y: 0,
+            scale: 1,
+            originalWidth: 0,
+            originalHeight: 0,
+            blurAmount: 0, // New: in pixels
+            darkenAmount: 0 // New: 0 to 1 (opacity)
+        };
+
+        // This will be the color used for contrast calculation, either detected or overridden
+        let backgroundColorForContrast = '#f0f0f0'; // Default to light gray
+        // This will store the *sampled* background color under the text, if an image is present
+        let sampledBackgroundColorUnderText = '#f0f0f0';
+
+
+        let isDraggingText = false;
+        let isDraggingImage = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        let originalTextColorBeforeHover = textProperties.color; // To store color before hover preview
+
+        // New state variable for text movement lock: 0 (none), 1 (lock X), 2 (lock Y)
+        let textMovementLock = 0; // Default to no lock (diagonal movement)
+
+        // Full set of colors for the palette (no longer split into default/suggestions)
+        const fullPaletteColors = [
+            { name: 'Light Blue', hex: '#A7C7E7' },
+            { name: 'Medium Blue', hex: '#6B93D6' },
+            { name: 'Dark Blue', hex: '#3465C7' },
+            { name: 'Vibrant Blue', hex: '#0056B3' },
+            { name: 'Teal', hex: '#008080' },
+            { name: 'Light Green', hex: '#90EE90' },
+            { name: 'Medium Green', hex: '#3CB371' },
+            { name: 'Dark Green', hex: '#228B22' },
+            { name: 'Lime Green', hex: '#32CD32' },
+            { name: 'Yellow', hex: '#FFFF00' },
+            { name: 'Gold', hex: '#FFD700' },
+            { name: 'Orange', hex: '#FFA500' },
+            { name: 'Dark Orange', hex: '#FF8C00' },
+            { name: 'Red', hex: '#FF0000' },
+            { name: 'Crimson', hex: '#DC143C' },
+            { name: 'Dark Red', hex: '#8B0000' },
+            { name: 'Light Pink', hex: '#FFB6C1' },
+            { name: 'Medium Pink', hex: '#FF69B4' },
+            { name: 'Dark Pink', hex: '#C71585' },
+            { name: 'Light Purple', hex: '#D8BFD8' },
+            { name: 'Medium Purple', hex: '#9370DB' },
+            { name: 'Dark Purple', hex: '#800080' },
+            { name: 'Indigo', hex: '#4B0082' },
+            { name: 'Brown', hex: '#A52A2A' },
+            { name: 'Saddle Brown', hex: '#8B4513' },
+            { name: 'Chocolate', hex: '#D2691E' },
+            { name: 'Maroon', hex: '#800000' },
+            { name: 'White', hex: '#FFFFFF' },
+            { name: 'Light Gray', hex: '#D3D3D3' },
+            { name: 'Silver', hex: '#C0C0C0' },
+            { name: 'Gray', hex: '#808080' },
+            { name: 'Dark Gray', hex: '#A9A9A9' },
+            { name: 'Dim Gray', hex: '#696969' },
+            { name: 'Light Slate Gray', hex: '#778899' },
+            { name: 'Slate Gray', hex: '#708090' },
+            { name: 'Dark Slate Gray', hex: '#2F4F4F' },
+            { name: 'Black', hex: '#000000' },
+            { name: 'Ghost White', hex: '#F8F8FF' },
+            { name: 'Alice Blue', hex: '#F0F8FF' },
+            { name: 'Lavender', hex: '#E6E6FA' },
+            { name: 'Thistle', hex: '#D8BFD8' },
+            { name: 'Plum', hex: '#DDA0DD' },
+            { name: 'Violet', hex: '#EE82EE' },
+            { name: 'Orchid', hex: '#DA70D6' },
+            { name: 'Fuchsia', hex: '#FF00FF' },
+            { name: 'Magenta', hex: '#FF00FF' },
+            { name: 'Medium Orchid', hex: '#BA55D3' },
+            { name: 'Dark Orchid', hex: '#9932CC' },
+            { name: 'Dark Violet', hex: '#9400D3' },
+            { name: 'Blue Violet', hex: '#8A2BE2' },
+            { name: 'Dark Blue Violet', hex: '#9932CC' },
+            { name: 'Medium Purple', hex: '#9370DB' },
+            { name: 'Slate Blue', hex: '#6A5ACD' },
+            { name: 'Dark Slate Blue', hex: '#483D8B' },
+            { name: 'Medium Slate Blue', hex: '#7B68EE' },
+            { name: 'Cornflower Blue', hex: '#6495ED' },
+            { name: 'Royal Blue', hex: '#4169E1' },
+            { name: 'Medium Blue', hex: '#0000CD' },
+            { name: 'Dark Blue', hex: '#00008B' },
+            { name: 'Navy', hex: '#000080' },
+            { name: 'Midnight Blue', hex: '#191970' },
+            { name: 'Steel Blue', hex: '#4682B4' },
+            { name: 'Light Steel Blue', hex: '#B0C4DE' },
+            { name: 'Cadet Blue', hex: '#5F9EA0' },
+            { name: 'Aqua', hex: '#00FFFF' },
+            { name: 'Cyan', hex: '#00FFFF' },
+            { name: 'Dark Cyan', hex: '#008B8B' },
+            { name: 'Teal', hex: '#008080' },
+            { name: 'Medium Aquamarine', hex: '#66CDAA' },
+            { name: 'Aquamarine', hex: '#7FFFD4' },
+            { name: 'Pale Green', hex: '#98FB98' },
+            { name: 'Light Green', hex: '#90EE90' },
+            { name: 'Spring Green', hex: '#00FF7F' },
+            { name: 'Medium Spring Green', hex: '#00FA9A' },
+            { name: 'Lime Green', hex: '#32CD32' },
+            { name: 'Forest Green', hex: '#228B22' },
+            { name: 'Green', hex: '#008000' },
+            { name: 'Dark Green', hex: '#006400' },
+            { name: 'Chartreuse', hex: '#7FFF00' },
+            { name: 'Lawn Green', hex: '#7CFC00' },
+            { name: 'Green Yellow', hex: '#ADFF2F' },
+            { name: 'Yellow Green', hex: '#9ACD32' },
+            { name: 'Olive Drab', hex: '#6B8E23' },
+            { name: 'Dark Olive Green', hex: '#556B2F' },
+            { name: 'Olive', hex: '#808000' },
+            { name: 'Dark Khaki', hex: '#BDB76B' },
+            { name: 'Pale Goldenrod', hex: '#EEE8AA' },
+            { name: 'Cornsilk', hex: '#FFF8DC' },
+            { name: 'Blanched Almond', hex: '#FFEBCD' },
+            { name: 'Bisque', hex: '#FFE4C4' },
+            { name: 'Navajo White', hex: '#FFDEAD' },
+            { name: 'Wheat', hex: '#F5DEB3' },
+            { name: 'Burly Wood', hex: '#DEB887' },
+            { name: 'Tan', hex: '#D2B48C' },
+            { name: 'Rosy Brown', hex: '#BC8F8F' },
+            { name: 'Sandy Brown', hex: '#F4A460' },
+            { name: 'Goldenrod', hex: '#DAA520' },
+            { name: 'Dark Goldenrod', hex: '#B8860B' },
+            { name: 'Peru', hex: '#CD853F' },
+            { name: 'Chocolate', hex: '#D2691E' },
+            { name: 'Sienna', hex: '#A0522D' },
+            { name: 'Light Coral', hex: '#F08080' },
+            { name: 'Indian Red', hex: '#CD5C5C' },
+            { name: 'Firebrick', hex: '#B22222' },
+            { name: 'Dark Red', hex: '#8B0000' },
+            { name: 'Crimson', hex: '#DC143C' },
+            { name: 'Tomato', hex: '#FF6347' },
+            { name: 'Orange Red', hex: '#FF4500' },
+            { name: 'Dark Orange', hex: '#FF8C00' },
+            { name: 'Coral', hex: '#FF7F50' },
+            { name: 'Hot Pink', hex: '#FF69B4' },
+            { name: 'Deep Pink', hex: '#FF1493' },
+            { name: 'Medium Violet Red', hex: '#C71585' },
+            { name: 'Pale Violet Red', hex: '#DB7093' },
+        ];
+
+
+        /**
+         * Initializes the canvas dimensions based on selected preset or default.
+         */
+        function initializeCanvas() {
+            const selectedOption = presetSelect.options[presetSelect.selectedIndex];
+            const aspectRatio = parseFloat(selectedOption.dataset.aspectRatio);
+
+            // Using a common YouTube thumbnail width as a general target resolution for download
+            const targetResolutionWidth = 1920; // Example: Full HD width
+            const targetResolutionHeight = targetResolutionWidth / aspectRatio;
+
+            // Get the dimensions of the parent section to constrain the canvas display size
+            const containerSection = document.querySelector('main section');
+            // Use 90% of available space to ensure some padding and responsiveness
+            const maxWidth = containerSection.clientWidth * 0.9;
+            const maxHeight = containerSection.clientHeight * 0.9;
+
+            let displayWidth = targetResolutionWidth;
+            let displayHeight = targetResolutionHeight;
+
+            // Scale down display size if the target dimensions exceed the maximum available space
+            if (displayWidth > maxWidth) {
+                displayWidth = maxWidth;
+                displayHeight = displayWidth / aspectRatio;
+            }
+            if (displayHeight > maxHeight) {
+                displayHeight = maxHeight;
+                displayWidth = displayHeight * aspectRatio;
+            }
+
+            canvas.width = targetResolutionWidth; // Set internal canvas resolution for high-quality output
+            canvas.height = targetResolutionHeight;
+            canvas.style.width = `${displayWidth}px`; // Set display size for responsiveness
+            canvas.style.height = `${displayHeight}px`;
+
+            // Only center the text initially if it hasn't been moved by the user
+            if (textProperties.x === 0 && textProperties.y === 0) {
+                textProperties.x = (canvas.width / 2);
+                textProperties.y = (canvas.height / 2);
+                textXInput.value = Math.round(textProperties.x);
+                textYInput.value = Math.round(textProperties.y);
+            }
+            updateTextMetrics(); // Only update metrics, not position
+            
+            if (currentImage.src) { // Only fill if an image is already loaded
+                fillImageToCanvas(); // Default to fillImageToCanvas()
+            }
+            drawCanvas();
+            // Call checkContrast here to ensure initial contrast is calculated
+            checkContrast();
+        }
+
+        /**
+         * Updates text metrics (width, height) without changing its position.
+         * This now accounts for multiple lines.
+         */
+        function updateTextMetrics() {
+            ctx.font = `${textProperties.fontWeight} ${textProperties.fontSize}px ${textProperties.fontFamily}`;
+            const lines = textProperties.content.split('\n');
+            let maxWidth = 0;
+            for (const line of lines) {
+                const metrics = ctx.measureText(line);
+                maxWidth = Math.max(maxWidth, metrics.width);
+            }
+            textProperties.width = maxWidth;
+            textProperties.height = textProperties.fontSize * lines.length * textProperties.lineHeight;
+        }
+
+        /**
+         * Adjusts image properties to fit the image entirely within the canvas.
+         */
+        function fitImageToCanvas() {
+            if (!currentImage.src || !currentImage.complete) return;
+
+            const imgAspectRatio = currentImage.width / currentImage.height;
+            const canvasAspectRatio = canvas.width / canvas.height;
+
+            if (imgAspectRatio > canvasAspectRatio) {
+                // Image is wider than canvas, fit by width
+                imageProperties.scale = canvas.width / currentImage.width;
+            } else {
+                // Image is taller than or equal to canvas, fit by height
+                imageProperties.scale = canvas.height / currentImage.height;
+            }
+
+            imageProperties.x = (canvas.width - currentImage.width * imageProperties.scale) / 2;
+            imageProperties.y = (canvas.height - currentImage.height * imageProperties.scale) / 2;
+
+            updateImageUI();
+            drawCanvas();
+        }
+
+        /**
+         * Adjusts image properties to fill the canvas, potentially cropping the image.
+         */
+        function fillImageToCanvas() {
+            if (!currentImage.src || !currentImage.complete) return;
+
+            const imgAspectRatio = currentImage.width / currentImage.height;
+            const canvasAspectRatio = canvas.width / canvas.height;
+
+            if (imgAspectRatio < canvasAspectRatio) {
+                // Image is taller than canvas, fill by width
+                imageProperties.scale = canvas.width / currentImage.width;
+            } else {
+                // Image is wider than or equal to canvas, fill by height
+                imageProperties.scale = canvas.height / currentImage.height;
+            }
+
+            imageProperties.x = (canvas.width - currentImage.width * imageProperties.scale) / 2;
+            imageProperties.y = (canvas.height - currentImage.height * imageProperties.scale) / 2;
+
+            updateImageUI();
+            drawCanvas();
+        }
+
+        /**
+         * Updates the image control UI elements based on current image properties.
+         */
+        function updateImageUI() {
+            imageZoomInputDropdown.value = imageProperties.scale;
+            imageZoomValueSpanDropdown.textContent = `${Math.round(imageProperties.scale * 100)}%`;
+            imageXInputDropdown.value = Math.round(imageProperties.x);
+            imageYInputDropdown.value = Math.round(imageProperties.y);
+            imageBlurInputDropdown.value = imageProperties.blurAmount;
+            imageBlurValueSpanDropdown.textContent = `${imageProperties.blurAmount}px`;
+            imageDarkenInputDropdown.value = imageProperties.darkenAmount * 100;
+            imageDarkenValueSpanDropdown.textContent = `${imageProperties.darkenAmount * 100}%`;
+        }
+
+        /**
+         * Draws the image and text onto the canvas.
+         */
+        function drawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+
+            // Apply blur filter to the entire canvas before drawing image
+            if (imageProperties.blurAmount > 0) {
+                ctx.filter = `blur(${imageProperties.blurAmount}px)`;
+            } else {
+                ctx.filter = 'none';
+            }
+
+            // Draw image if loaded
+            if (currentImage.src && currentImage.complete) {
+                const imgWidth = currentImage.width * imageProperties.scale;
+                const imgHeight = currentImage.height * imageProperties.scale;
+                ctx.drawImage(currentImage, imageProperties.x, imageProperties.y, imgWidth, imgHeight);
+                uploadImageBtn.classList.add('hidden'); // Hide upload button once image is loaded
+            } else {
+                // If no image, show a placeholder or the upload button
+                uploadImageBtn.classList.remove('hidden');
+            }
+
+            // Draw darkening overlay after image, but before text
+            if (imageProperties.darkenAmount > 0) {
+                ctx.fillStyle = `rgba(0, 0, 0, ${imageProperties.darkenAmount})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Reset filter before drawing text to ensure text is not blurred by image blur
+            ctx.filter = 'none';
+
+            // Draw text
+            ctx.font = `${textProperties.fontWeight} ${textProperties.fontSize}px ${textProperties.fontFamily}`;
+            ctx.fillStyle = textProperties.color;
+            ctx.globalAlpha = textProperties.opacity;
+            ctx.textAlign = 'center'; // Align text to center of its x,y
+            ctx.textBaseline = 'middle'; // Align text to middle of its x,y
+
+            // Add text shadow for better visibility
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+
+            const lines = textProperties.content.split('\n');
+            const lineHeightPx = textProperties.fontSize * textProperties.lineHeight;
+            const totalTextHeight = lines.length * lineHeightPx;
+            // Calculate starting Y for the first line to center the whole block
+            const startY = textProperties.y - (totalTextHeight / 2) + (lineHeightPx / 2);
+
+            lines.forEach((line, index) => {
+                ctx.fillText(line, textProperties.x, startY + index * lineHeightPx);
+            });
+
+            // Reset shadow properties
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+
+            ctx.globalAlpha = 1; // Reset global alpha
+
+            // After drawing, re-evaluate contrast
+            checkContrast();
+        }
+
+        /**
+         * Calculates the average color of the loaded image.
+         * This function should be called after an image is successfully loaded.
+         */
+        function calculateAverageImageColor() {
+            if (!currentImage.src || !currentImage.complete) {
+                // If no image, default to canvas background color for contrast
+                backgroundColorForContrast = '#f0f0f0';
+                detectedImageColorDisplay.style.backgroundColor = backgroundColorForContrast;
+                detectedImageColorValue.textContent = backgroundColorForContrast;
+                contrastBgColorInput.value = backgroundColorForContrast;
+                contrastBgColorHexInput.value = backgroundColorForContrast;
+                // No need to call checkContrast here, it's called by drawCanvas
+                return;
+            }
+
+            // Create a temporary canvas to draw the image and get pixel data
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Scale down the image for faster processing if it's too large
+            const maxDimension = 100; // Process a 100x100 version of the image
+            let drawWidth = currentImage.width;
+            let drawHeight = currentImage.height;
+
+            if (drawWidth > maxDimension || drawHeight > maxDimension) {
+                if (drawWidth > drawHeight) {
+                    drawHeight = (drawHeight / drawWidth) * maxDimension;
+                    drawWidth = maxDimension;
+                } else {
+                    drawWidth = (drawWidth / drawHeight) * maxDimension;
+                    drawHeight = maxDimension;
+                }
+            }
+
+            tempCanvas.width = drawWidth;
+            tempCanvas.height = drawHeight;
+
+            try {
+                tempCtx.drawImage(currentImage, 0, 0, drawWidth, drawHeight);
+                const imageData = tempCtx.getImageData(0, 0, drawWidth, drawHeight).data;
+
+                let r = 0, g = 0, b = 0;
+                let pixelCount = 0;
+
+                // Iterate over all pixels, skipping alpha channel
+                for (let i = 0; i < imageData.length; i += 4) {
+                    r += imageData[i];
+                    g += imageData[i + 1];
+                    b += imageData[i + 2];
+                    pixelCount++;
+                }
+
+                r = Math.floor(r / pixelCount);
+                g = Math.floor(g / pixelCount);
+                b = Math.floor(b / pixelCount);
+
+                const hexColor = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
+                
+                backgroundColorForContrast = hexColor; // This is the overall image color
+                detectedImageColorDisplay.style.backgroundColor = hexColor;
+                detectedImageColorValue.textContent = hexColor;
+                contrastBgColorInput.value = hexColor; // Set the override input to detected color
+                contrastBgColorHexInput.value = hexColor; // Set the hex input to detected color
+                // No need to call checkContrast here, it's called by drawCanvas
+            } catch (e) {
+                console.warn("Could not get image data for contrast analysis (likely CORS issue or SVG):", e);
+                // Fallback to canvas background color if image data cannot be accessed (e.g., CORS for external images)
+                backgroundColorForContrast = '#f0f0f0';
+                detectedImageColorDisplay.style.backgroundColor = backgroundColorForContrast;
+                detectedImageColorValue.textContent = 'N/A (CORS/Error)';
+                contrastBgColorInput.value = backgroundColorForContrast;
+                contrastBgColorHexInput.value = backgroundColorForContrast;
+                // No need to call checkContrast here, it's called by drawCanvas
+            }
+        }
+
+        /**
+         * Saves an image to recent images storage (localStorage).
+         * Stores the original dataURL to maintain high resolution.
+         * @param {string} dataURL - The data URL of the original image.
+         * @param {string} fileName - The name of the uploaded file.
+         */
+        function saveRecentImage(dataURL, fileName) {
+            // Add to the beginning of the array
+            recentImages.unshift({
+                id: Date.now(), // Unique ID for key
+                dataURL: dataURL, // Store original dataURL
+                name: fileName
+            });
+
+            // Keep only the last MAX_RECENT_IMAGES
+            if (recentImages.length > MAX_RECENT_IMAGES) {
+                recentImages = recentImages.slice(0, MAX_RECENT_IMAGES);
+            }
+
+            localStorage.setItem('recentImages', JSON.stringify(recentImages));
+            displayRecentImages();
+        }
+
+        /**
+         * Loads recent images from localStorage.
+         */
+        function loadRecentImages() {
+            const storedImages = localStorage.getItem('recentImages');
+            if (storedImages) {
+                recentImages = JSON.parse(storedImages);
+            }
+            displayRecentImages();
+        }
+
+        /**
+         * Displays recent images in the left panel.
+         */
+        function displayRecentImages() {
+            recentImagesContainer.innerHTML = ''; // Clear existing images
+            if (recentImages.length === 0) {
+                noRecentImagesMessage.classList.remove('hidden');
+            } else {
+                noRecentImagesMessage.classList.add('hidden');
+                recentImages.forEach(imgData => {
+                    const imgItem = document.createElement('div');
+                    imgItem.className = 'recent-image-item';
+                    imgItem.title = imgData.name;
+
+                    const imgElement = document.createElement('img');
+                    imgElement.src = imgData.dataURL; // Use original dataURL for display
+                    imgElement.alt = imgData.name;
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = imgData.name;
+
+                    imgItem.appendChild(imgElement);
+                    imgItem.appendChild(nameSpan);
+                    recentImagesContainer.appendChild(imgItem);
+
+                    imgItem.addEventListener('click', () => {
+                        currentImage.src = imgData.dataURL; // Load the original dataURL
+                        currentImage.onload = () => {
+                            imageProperties.originalWidth = currentImage.width;
+                            imageProperties.originalHeight = currentImage.height;
+                            fillImageToCanvas(); // Fill canvas with the selected recent image
+                            calculateAverageImageColor(); // This will update the overall detected color
+                            // drawCanvas() will call checkContrast()
+                            generateSuggestedThumbnails(); // Regenerate suggestions after loading recent image
+                        };
+                    });
+                });
+            }
+        }
+
+
+        /**
+         * Handles image file selection.
+         * @param {Event} event - The change event from the file input.
+         */
+        imageUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    currentImage.src = e.target.result;
+                    currentImage.onload = () => {
+                        imageProperties.originalWidth = currentImage.width;
+                        imageProperties.originalHeight = currentImage.height;
+                        fillImageToCanvas(); // Default to fill image on load
+                        calculateAverageImageColor(); // Calculate overall average color after image loads
+                        // drawCanvas() will call checkContrast()
+                        generateSuggestedThumbnails(); // Generate suggestions after image loads
+                        saveRecentImage(e.target.result, file.name); // Save original dataURL and filename
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        /**
+         * Triggers the hidden file input when the upload button is clicked.
+         */
+        uploadImageBtn.addEventListener('click', () => {
+            imageUpload.click();
+        });
+
+        // Drag and drop functionality for image upload
+        uploadImageBtn.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadImageBtn.classList.add('border-indigo-500', 'border-2');
+        });
+
+        uploadImageBtn.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadImageBtn.classList.remove('border-indigo-500', 'border-2');
+        });
+
+        uploadImageBtn.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadImageBtn.classList.remove('border-indigo-500', 'border-2');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                imageUpload.files = files; // Assign dropped files to the input
+                imageUpload.dispatchEvent(new Event('change')); // Trigger change event
+            }
+        });
+
+
+        // Event listeners for text property changes (now in dropdown)
+        textContentInput.addEventListener('input', (e) => {
+            textProperties.content = e.target.value;
+            updateTextMetrics(); // Recalculate metrics for multi-line text
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails();
+        });
+
+        fontFamilySelect.addEventListener('change', (e) => {
+            textProperties.fontFamily = e.target.value;
+            updateTextMetrics(); // Recalculate metrics
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails();
+        });
+
+        fontSizeInput.addEventListener('input', (e) => {
+            textProperties.fontSize = parseInt(e.target.value);
+            fontSizeValueSpan.textContent = `${e.target.value}px`;
+            updateTextMetrics(); // Recalculate metrics
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails();
+        });
+
+        fontWeightInput.addEventListener('input', (e) => {
+            textProperties.fontWeight = parseInt(e.target.value);
+            fontWeightValueSpan.textContent = e.target.value;
+            updateTextMetrics(); // Recalculate metrics
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails();
+        });
+
+        /**
+         * Function to update text color and trigger redraw/contrast check.
+         * This function is called by both the color input and the swatches.
+         * @param {string} newColor - The new hex color for the text.
+         */
+        function updateTextColor(newColor) {
+            textProperties.color = newColor;
+            paletteColorInput.value = newColor; // Sync color picker
+            paletteColorHexInput.value = newColor.toUpperCase(); // Sync hex input
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails(); // Regenerate suggestions with new base color
+        }
+
+        // Event listener for the color input (the color swatch)
+        paletteColorInput.addEventListener('input', (e) => updateTextColor(e.target.value));
+
+        // Event listener for the hex input field
+        paletteColorHexInput.addEventListener('input', (e) => {
+            let hexValue = e.target.value;
+            // Basic validation for hex color (e.g., #RRGGBB or #RGB)
+            if (/^#([A-Fa-f0-9]{3}){1,2}$/.test(hexValue)) {
+                updateTextColor(hexValue);
+            }
+        });
+
+
+        textOpacityInput.addEventListener('input', (e) => {
+            textProperties.opacity = parseFloat(e.target.value) / 100;
+            textOpacityValueSpan.textContent = `${e.target.value}%`;
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails(); // Regenerate suggestions with new opacity
+        });
+
+        // Text X/Y numerical inputs
+        textXInput.addEventListener('input', (e) => {
+            textProperties.x = parseFloat(e.target.value);
+            drawCanvas(); // Redraw will trigger checkContrast
+        });
+
+        textYInput.addEventListener('input', (e) => {
+            textProperties.y = parseFloat(e.target.value);
+            drawCanvas(); // Redraw will trigger checkContrast
+        });
+
+        // Text Movement Lock Button Handlers
+        function updateLockStatusUI() {
+            const iconElement = toggleTextMovementLockBtn.querySelector('i');
+            if (!iconElement) return; // Ensure the icon element exists
+
+            iconElement.classList.remove('fa-arrows-alt', 'fa-arrows-alt-h', 'fa-arrows-alt-v');
+
+            if (textMovementLock === 0) { // Unlocked
+                iconElement.classList.add('fa-arrows-alt');
+                currentLockStatus.textContent = 'Current: Diagonal';
+            } else if (textMovementLock === 1) { // Lock X
+                iconElement.classList.add('fa-arrows-alt-h');
+                currentLockStatus.textContent = 'Current: Lock X';
+            } else if (textMovementLock === 2) { // Lock Y
+                iconElement.classList.add('fa-arrows-alt-v');
+                currentLockStatus.textContent = 'Current: Lock Y';
+            }
+        }
+
+        toggleTextMovementLockBtn.addEventListener('click', () => {
+            textMovementLock = (textMovementLock + 1) % 3; // Cycle through 0, 1, 2
+            updateLockStatusUI();
+        });
+
+
+        // Canvas Size Presets
+        presetSelect.addEventListener('change', () => {
+            initializeCanvas(); // Re-initialize canvas with the selected preset
+            generateSuggestedThumbnails(); // Regenerate suggestions when canvas size changes
+        });
+
+        // Image Control Event Listeners (now from dropdown elements)
+        fitImageBtnDropdown.addEventListener('click', () => {
+            fitImageToCanvas();
+            generateSuggestedThumbnails(); // Regenerate suggestions when image fit changes
+        });
+        fillImageBtnDropdown.addEventListener('click', () => {
+            fillImageToCanvas();
+            generateSuggestedThumbnails(); // Regenerate suggestions when image fill changes
+        });
+
+        imageZoomInputDropdown.addEventListener('input', (e) => {
+            imageProperties.scale = parseFloat(e.target.value);
+            imageZoomValueSpanDropdown.textContent = `${Math.round(imageProperties.scale * 100)}%`;
+            // Keep image centered when zooming if it was already centered
+            if (currentImage.src && currentImage.complete) {
+                imageProperties.x = (canvas.width - currentImage.width * imageProperties.scale) / 2;
+                imageProperties.y = (canvas.height - currentImage.height * imageProperties.scale) / 2;
+            }
+            updateImageUI();
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails(); // Regenerate suggestions when image zoom changes
+        });
+
+        imageXInputDropdown.addEventListener('input', (e) => {
+            imageProperties.x = parseFloat(e.target.value);
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails(); // Regenerate suggestions when image position changes
+        });
+
+        imageYInputDropdown.addEventListener('input', (e) => {
+            imageProperties.y = parseFloat(e.target.value);
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails(); // Regenerate suggestions when image position changes
+        });
+
+        // New Event Listeners for Blur and Darken
+        imageBlurInputDropdown.addEventListener('input', (e) => {
+            imageProperties.blurAmount = parseFloat(e.target.value);
+            imageBlurValueSpanDropdown.textContent = `${e.target.value}px`;
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails(); // Update suggestions
+        });
+
+        imageDarkenInputDropdown.addEventListener('input', (e) => {
+            imageProperties.darkenAmount = parseFloat(e.target.value) / 100; // Convert to 0-1 range
+            imageDarkenValueSpanDropdown.textContent = `${e.target.value}%`;
+            drawCanvas(); // Redraw will trigger checkContrast
+            generateSuggestedThumbnails(); // Update suggestions
+        });
+
+        // Background Color for Contrast Input Listeners (for override)
+        contrastBgColorInput.addEventListener('input', (e) => {
+            // When user manually sets, override the sampled color
+            backgroundColorForContrast = e.target.value;
+            contrastBgColorHexInput.value = e.target.value;
+            checkContrast(); // Recalculate contrast using the overridden color
+            generateSuggestedThumbnails(); // Regenerate suggestions
+        });
+
+        contrastBgColorHexInput.addEventListener('input', (e) => {
+            // When user manually sets, override the sampled color
+            backgroundColorForContrast = e.target.value;
+            contrastBgColorInput.value = e.target.value; // Sync color picker
+            checkContrast(); // Recalculate contrast using the overridden color
+            generateSuggestedThumbnails(); // Regenerate suggestions
+        });
+
+
+        /**
+         * Checks if the mouse/touch is over the text element.
+         * @param {number} clientX - The clientX coordinate of the mouse/touch.
+         * @param {number} clientY - The clientY coordinate of the mouse/touch.
+         * @returns {boolean} True if over text, false otherwise.
+         */
+        function isOverText(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = clientX - rect.left;
+            const mouseY = clientY - rect.top;
+
+            // Adjust text bounding box for current scale of canvas display vs internal resolution
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            // Calculate the top-left corner of the scaled text block
+            const textScaledX = (textProperties.x - textProperties.width / 2) / scaleX;
+            const textScaledY = (textProperties.y - textProperties.height / 2) / scaleY;
+            const textScaledWidth = textProperties.width / scaleX;
+            const textScaledHeight = textProperties.height / scaleY;
+
+
+            return mouseX >= textScaledX && mouseX <= (textScaledX + textScaledWidth) &&
+                   mouseY >= textScaledY && mouseY <= (textScaledY + textScaledHeight);
+        }
+
+
+        /**
+         * Handles mouse down event on the canvas for text or image dragging.
+         * @param {MouseEvent} e - The mouse event.
+         */
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Scale mouse coordinates to canvas internal resolution
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const canvasMouseX = mouseX * scaleX;
+            const canvasMouseY = mouseY * scaleY;
+
+            if (isOverText(e.clientX, e.clientY)) {
+                isDraggingText = true;
+                canvas.classList.add('dragging');
+                dragOffsetX = canvasMouseX - textProperties.x;
+                dragOffsetY = canvasMouseY - textProperties.y;
+            } else if (currentImage.src && currentImage.complete) {
+                isDraggingImage = true;
+                canvas.classList.add('dragging');
+                dragOffsetX = canvasMouseX - imageProperties.x;
+                dragOffsetY = canvasMouseY - imageProperties.y;
+            }
+        });
+
+        /**
+         * Handles mouse move event on the canvas for text or image dragging.
+         * @param {MouseEvent} e - The mouse event.
+         */
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDraggingText && !isDraggingImage) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Scale mouse coordinates to canvas internal resolution
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const canvasMouseX = mouseX * scaleX;
+            const canvasMouseY = mouseY * scaleY;
+
+            if (isDraggingText) {
+                if (textMovementLock === 1) { // Lock X
+                    textProperties.x = canvasMouseX - dragOffsetX;
+                } else if (textMovementLock === 2) { // Lock Y
+                    textProperties.y = canvasMouseY - dragOffsetY;
+                } else { // 0: 'none' or diagonal
+                    textProperties.x = canvasMouseX - dragOffsetX;
+                    textProperties.y = canvasMouseY - dragOffsetY;
+                }
+                textXInput.value = Math.round(textProperties.x);
+                textYInput.value = Math.round(textProperties.y);
+            } else if (isDraggingImage) {
+                imageProperties.x = canvasMouseX - dragOffsetX;
+                imageProperties.y = canvasMouseY - dragOffsetY;
+                updateImageUI();
+            }
+            drawCanvas(); // Redraw will trigger checkContrast
+        });
+
+        /**
+         * Handles mouse up event to stop dragging.
+         */
+        canvas.addEventListener('mouseup', () => {
+            isDraggingText = false;
+            isDraggingImage = false;
+            canvas.classList.remove('dragging');
+        });
+
+        /**
+         * Handles touch start event for dragging on touch devices.
+         * @param {TouchEvent} e - The touch event.
+         */
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+
+            // Scale touch coordinates to canvas internal resolution
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const canvasTouchX = touchX * scaleX;
+            const canvasTouchY = touchY * scaleY;
+
+            if (isOverText(touch.clientX, touch.clientY)) {
+                isDraggingText = true;
+                canvas.classList.add('dragging');
+                dragOffsetX = canvasTouchX - textProperties.x;
+                dragOffsetY = canvasTouchY - textProperties.y;
+            } else if (currentImage.src && currentImage.complete) {
+                isDraggingImage = true;
+                canvas.classList.add('dragging');
+                dragOffsetX = canvasTouchX - imageProperties.x;
+                dragOffsetY = canvasTouchY - imageProperties.y;
+            }
+        });
+
+        /**
+         * Handles touch move event for dragging on touch devices.
+         * @param {TouchEvent} e - The touch event.
+         */
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            if (!isDraggingText && !isDraggingImage) return;
+
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+
+            // Scale touch coordinates to canvas internal resolution
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const canvasTouchX = touchX * scaleX;
+            const canvasTouchY = touchY * scaleY;
+
+            if (isDraggingText) {
+                if (textMovementLock === 1) { // Lock X
+                    textProperties.x = canvasTouchX - dragOffsetX;
+                } else if (textMovementLock === 2) { // Lock Y
+                    textProperties.y = canvasTouchY - dragOffsetY;
+                } else { // 0: 'none' or diagonal
+                    textProperties.x = canvasTouchX - dragOffsetX;
+                    textProperties.y = canvasTouchY - dragOffsetY;
+                }
+                textXInput.value = Math.round(textProperties.x);
+                textYInput.value = Math.round(textProperties.y);
+            } else if (isDraggingImage) {
+                imageProperties.x = canvasTouchX - dragOffsetX;
+                imageProperties.y = canvasTouchY - dragOffsetY;
+                updateImageUI();
+            }
+            drawCanvas(); // Redraw will trigger checkContrast
+        });
+
+        /**
+         * Handles touch end event to stop dragging.
+         */
+        canvas.addEventListener('touchend', () => {
+            isDraggingText = false;
+            isDraggingImage = false;
+            canvas.classList.remove('dragging');
+        });
+
+
+        /**
+         * Handles window resize to adjust canvas dimensions and redraw.
+         */
+        window.addEventListener('resize', initializeCanvas);
+
+        /**
+         * Toggles the visibility of download options.
+         */
+        downloadBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent document click from immediately closing it
+            downloadOptions.classList.toggle('hidden');
+        });
+
+        /**
+         * Downloads the current canvas content as a PNG image.
+         */
+        downloadPng.addEventListener('click', (e) => {
+            e.preventDefault();
+            const dataURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = 'thumbnail.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            downloadOptions.classList.add('hidden'); // Hide options after download
+        });
+
+        /**
+         * Downloads the current canvas content as a JPEG image.
+         */
+        downloadJpeg.addEventListener('click', (e) => {
+            e.preventDefault();
+            const dataURL = canvas.toDataURL('image/jpeg', 0.9); // 0.9 quality for JPEG
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = 'thumbnail.jpeg'; // Use .jpeg extension
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            downloadOptions.classList.add('hidden'); // Hide options after download
+        });
+
+        // Close download options if clicked outside
+        document.addEventListener('click', (e) => {
+            if (!textSettingsDropdown.contains(e.target) && !textSettingsBtn.contains(e.target)) {
+                textSettingsDropdown.classList.add('hidden');
+            }
+            if (!imageSettingsDropdown.contains(e.target) && !imageSettingsBtn.contains(e.target)) {
+                imageSettingsDropdown.classList.add('hidden');
+            }
+            if (!downloadOptions.contains(e.target) && !downloadBtn.contains(e.target)) {
+                downloadOptions.classList.add('hidden');
+            }
+        });
+
+
+        /**
+         * Updates all UI controls (inputs, spans) to reflect the current textProperties and imageProperties.
+         * This ensures consistency between the internal state and the displayed UI.
+         */
+        function updateAllUIControls() {
+            // Text properties UI
+            textContentInput.value = textProperties.content;
+            fontFamilySelect.value = textProperties.fontFamily;
+            fontSizeInput.value = textProperties.fontSize;
+            fontSizeValueSpan.textContent = `${textProperties.fontSize}px`;
+            fontWeightInput.value = textProperties.fontWeight;
+            fontWeightValueSpan.textContent = textProperties.fontWeight;
+            textOpacityInput.value = textProperties.opacity * 100;
+            textOpacityValueSpan.textContent = `${textProperties.opacity * 100}%`;
+            textXInput.value = Math.round(textProperties.x);
+            textYInput.value = Math.round(textProperties.y);
+
+            // Image properties UI
+            imageZoomInputDropdown.value = imageProperties.scale;
+            imageZoomValueSpanDropdown.textContent = `${Math.round(imageProperties.scale * 100)}%`;
+            imageXInputDropdown.value = Math.round(imageProperties.x);
+            imageYInputDropdown.value = Math.round(imageProperties.y);
+            imageBlurInputDropdown.value = imageProperties.blurAmount;
+            imageBlurValueSpanDropdown.textContent = `${imageProperties.blurAmount}px`;
+            imageDarkenInputDropdown.value = imageProperties.darkenAmount * 100;
+            imageDarkenValueSpanDropdown.textContent = `${imageProperties.darkenAmount * 100}%`;
+            
+            // Contrast background color UI (for override)
+            contrastBgColorInput.value = backgroundColorForContrast;
+            contrastBgColorHexInput.value = backgroundColorForContrast;
+
+            // Palette color UI
+            paletteColorInput.value = textProperties.color;
+            paletteColorHexInput.value = textProperties.color.toUpperCase();
+
+            // Preset select UI
+            presetSelect.value = 'custom'; // Ensure it defaults to custom unless explicitly changed by user action
+
+            // Text movement lock UI
+            updateLockStatusUI();
+        }
+
+        /**
+         * Resets the application to its initial state.
+         */
+        resetBtn.addEventListener('click', () => {
+            currentImage = new Image(); // Clear image
+            imageUpload.value = ''; // Clear file input
+            textProperties = {
+                content: 'POV',
+                fontFamily: 'Arial', // Reset default to Arial
+                fontSize: 200,
+                fontWeight: 700,
+                color: '#ffffff',
+                opacity: 1,
+                x: 0, // Reset position to 0
+                y: 0, // Reset position to 0
+                width: 0,
+                height: 0,
+                lineHeight: 1.2
+            };
+            imageProperties = {
+                x: 0,
+                y: 0,
+                scale: 1,
+                originalWidth: 0,
+                originalHeight: 0,
+                blurAmount: 0, // Reset blur
+                darkenAmount: 0 // Reset darken
+            };
+            backgroundColorForContrast = '#f0f0f0'; // Reset contrast background
+            sampledBackgroundColorUnderText = '#f0f0f0'; // Reset sampled background
+            textMovementLock = 0; // Reset text movement lock to unlocked
+
+            updateAllUIControls(); // Update all UI elements to reflect the reset state
+            initializeCanvas(); // Re-initialize canvas and redraw
+            generateSuggestedThumbnails(); // Regenerate suggestions on reset
+            loadRecentImages(); // Update recent images display on reset
+        });
+
+        /**
+         * Converts a hex color string to an RGB object.
+         * @param {string} hex - The hex color string (e.g., "#RRGGBB" or "#RGB").
+         * @returns {object} An object with r, g, b properties.
+         */
+        function hexToRgb(hex) {
+            let r = 0, g = 0, b = 0;
+            // Handle #RGB format
+            if (hex.length === 4) {
+                r = parseInt(hex[1] + hex[1], 16);
+                g = parseInt(hex[2] + hex[2], 16);
+                b = parseInt(hex[3] + hex[3], 16);
+            }
+            // Handle #RRGGBB format
+            else if (hex.length === 7) {
+                r = parseInt(hex.substring(1, 3), 16);
+                g = parseInt(hex.substring(3, 5), 16);
+                b = parseInt(hex.substring(5, 7), 16);
+            }
+            return { r, g, b };
+        }
+
+        /**
+         * Converts an sRGB color component (0-255) to its linear equivalent.
+         * @param {number} c - The sRGB color component.
+         * @returns {number} The linear color component.
+         */
+        function srgbToLinear(c) {
+            c /= 255;
+            return (c <= 0.03928) ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        }
+
+        /**
+         * Calculates the relative luminance of an RGB color.
+         * @param {number} r - Red component (0-255).
+         * @param {number} g - Green component (0-255).
+         * @param {number} b - Blue component (0-255).
+         * @returns {number} The relative luminance (0-1).
+         */
+        function getLuminance(r, g, b) {
+            const R = srgbToLinear(r);
+            const G = srgbToLinear(g);
+            const B = srgbToLinear(b);
+            return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+        }
+
+        /**
+         * Calculates the contrast ratio between two luminances.
+         * @param {number} L1 - Luminance of the lighter color.
+         * @param {number} L2 - Luminance of the darker color.
+         * @returns {number} The contrast ratio (1-21).
+         */
+        function getContrastRatio(L1, L2) {
+            return (L1 + 0.05) / (L2 + 0.05);
+        }
+
+        /**
+         * Samples the average color of the image area under the text.
+         * @returns {string} The hex color string of the sampled background.
+         */
+        function sampleBackgroundColorUnderText() {
+            if (!currentImage.src || !currentImage.complete) {
+                return '#f0f0f0'; // Default if no image
+            }
+
+            // Define a padding around the text bounding box for sampling
+            const padding = 20; // pixels
+
+            // Calculate the bounding box of the text on the canvas
+            const textLeft = Math.max(0, textProperties.x - textProperties.width / 2 - padding);
+            const textTop = Math.max(0, textProperties.y - textProperties.height / 2 - padding);
+            const textRight = Math.min(canvas.width, textProperties.x + textProperties.width / 2 + padding);
+            const textBottom = Math.min(canvas.height, textProperties.y + textProperties.height / 2 + padding);
+
+            const sampleWidth = textRight - textLeft;
+            const sampleHeight = textBottom - textTop;
+
+            if (sampleWidth <= 0 || sampleHeight <= 0) {
+                return '#f0f0f0'; // Return default if text area is invalid
+            }
+
+            // Create a temporary canvas to draw the relevant part of the image and get pixel data
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = sampleWidth;
+            tempCanvas.height = sampleHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            try {
+                // Draw only the relevant portion of the image onto the temporary canvas
+                // Apply image blur and darken effects to the temporary context first
+                if (imageProperties.blurAmount > 0) {
+                    tempCtx.filter = `blur(${imageProperties.blurAmount}px)`;
+                } else {
+                    tempCtx.filter = 'none';
+                }
+                tempCtx.drawImage(
+                    currentImage,
+                    imageProperties.x - textLeft, // Source X adjusted for text bounding box
+                    imageProperties.y - textTop,  // Source Y adjusted for text bounding box
+                    currentImage.width * imageProperties.scale,
+                    currentImage.height * imageProperties.scale
+                );
+
+                // Draw darkening overlay
+                if (imageProperties.darkenAmount > 0) {
+                    tempCtx.fillStyle = `rgba(0, 0, 0, ${imageProperties.darkenAmount})`;
+                    tempCtx.fillRect(0, 0, sampleWidth, sampleHeight);
+                }
+
+                const imageData = tempCtx.getImageData(0, 0, sampleWidth, sampleHeight).data;
+
+                let r = 0, g = 0, b = 0;
+                let pixelCount = 0;
+
+                for (let i = 0; i < imageData.length; i += 4) {
+                    r += imageData[i];
+                    g += imageData[i + 1];
+                    b += imageData[i + 2];
+                    pixelCount++;
+                }
+
+                r = Math.floor(r / pixelCount);
+                g = Math.floor(g / pixelCount);
+                b = Math.floor(b / pixelCount);
+
+                return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
+
+            } catch (e) {
+                console.warn("Could not sample background under text (likely CORS issue or SVG):", e);
+                return '#f0f0f0'; // Fallback
+            }
+        }
+
+        /**
+         * Checks and updates the color contrast analysis section.
+         */
+        function checkContrast() {
+            let effectiveBackgroundColor;
+
+            // If the user has manually set an override color, use that
+            if (contrastBgColorInput.value !== backgroundColorForContrast) {
+                effectiveBackgroundColor = contrastBgColorInput.value;
+            } else if (currentImage.src && currentImage.complete) {
+                // If an image is loaded and no override, sample under the text
+                effectiveBackgroundColor = sampleBackgroundColorUnderText();
+            } else {
+                // If no image and no override, use the default canvas background
+                effectiveBackgroundColor = '#f0f0f0';
+            }
+
+            sampledBackgroundColorUnderText = effectiveBackgroundColor; // Store the color actually used for contrast
+
+            const textColorRgb = hexToRgb(textProperties.color);
+            const bgColorRgb = hexToRgb(effectiveBackgroundColor);
+
+            // Apply text opacity to foreground color for perceived contrast
+            const finalTextColorRgb = {
+                r: Math.round(textColorRgb.r * textProperties.opacity + bgColorRgb.r * (1 - textProperties.opacity)),
+                g: Math.round(textColorRgb.g * textProperties.opacity + bgColorRgb.g * (1 - textProperties.opacity)),
+                b: Math.round(textColorRgb.b * textProperties.opacity + bgColorRgb.b * (1 - textProperties.opacity))
+            };
+
+            const L1 = getLuminance(finalTextColorRgb.r, finalTextColorRgb.g, finalTextColorRgb.b);
+            const L2 = getLuminance(bgColorRgb.r, bgColorRgb.g, bgColorRgb.b);
+
+            const contrast = L1 > L2 ? getContrastRatio(L1, L2) : getContrastRatio(L2, L1);
+
+            // Update UI
+            contrastTextColor.style.backgroundColor = textProperties.color;
+            contrastTextColorValue.textContent = `${textProperties.color} (Opacity: ${Math.round(textProperties.opacity * 100)}%)`;
+            contrastBgColorDisplay.style.backgroundColor = effectiveBackgroundColor; // Display the actual background color used for contrast
+            contrastBgColorValueSpan.textContent = effectiveBackgroundColor;
+            contrastRatioValue.textContent = contrast.toFixed(2);
+
+            // WCAG Guidelines
+            const isLargeText = textProperties.fontSize >= 24 || (textProperties.fontSize >= 18.66 && textProperties.fontWeight >= 700);
+
+            // WCAG AA
+            const wcagAARequirement = isLargeText ? 3.0 : 4.5;
+            if (contrast >= wcagAARequirement) {
+                wcagAAResult.textContent = `Pass (${wcagAARequirement}:1)`;
+                wcagAAResult.className = 'font-semibold text-green-600';
+            } else {
+                wcagAAResult.textContent = `Fail (${wcagAARequirement}:1)`;
+                wcagAAResult.className = 'font-semibold text-red-600';
+            }
+
+            // WCAG AAA
+            const wcagAAARequirement = isLargeText ? 4.5 : 7.0;
+            if (contrast >= wcagAAARequirement) {
+                wcagAAAResult.textContent = `Pass (${wcagAAARequirement}:1)`;
+                wcagAAAResult.className = 'font-semibold text-green-600';
+            } else {
+                wcagAAAResult.textContent = `Fail (${wcagAAARequirement}:1)`;
+                wcagAAAResult.className = 'font-semibold text-red-600';
+            }
+
+            // The main color palette is now static, no "suggestions" here
+            updateColorPalette();
+        }
+
+        /**
+         * Populates the bottom color palette with the full set of default colors.
+         * Hover functionality for preview and contrast analyzer update is included.
+         */
+        function updateColorPalette() {
+            predefinedColorSwatches.innerHTML = ''; // Clear current predefined swatches
+
+            fullPaletteColors.forEach(color => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = color.hex;
+                swatch.title = color.name;
+                swatch.dataset.color = color.hex;
+                swatch.addEventListener('click', () => updateTextColor(color.hex));
+
+                // Add hover for preview and contrast analyzer update
+                swatch.addEventListener('mouseover', () => {
+                    originalTextColorBeforeHover = textProperties.color; // Save current color
+                    textProperties.color = color.hex; // Temporarily change color for preview
+                    drawCanvas();
+                    // Manually update contrast analyzer for hovered color without re-rendering palette
+                    updateContrastAnalyzerUI(color.hex);
+                });
+                swatch.addEventListener('mouseout', () => {
+                    textProperties.color = originalTextColorBeforeHover; // Restore original color
+                    drawCanvas();
+                    // Restore contrast analyzer to original color
+                    updateContrastAnalyzerUI(originalTextColorBeforeHover);
+                });
+                predefinedColorSwatches.appendChild(swatch);
+            });
+        }
+
+        /**
+         * Updates only the contrast analyzer UI based on a given text color.
+         * This avoids re-rendering the entire palette during hover.
+         * @param {string} textColorHex - The hex color to use for contrast analysis.
+         */
+        function updateContrastAnalyzerUI(textColorHex) {
+            // Use the currently sampled background for this temporary check
+            const bgColorRgb = hexToRgb(sampledBackgroundColorUnderText);
+            const tempTextColorRgb = hexToRgb(textColorHex);
+
+            const finalTextColorRgb = {
+                r: Math.round(tempTextColorRgb.r * textProperties.opacity + bgColorRgb.r * (1 - textProperties.opacity)),
+                g: Math.round(tempTextColorRgb.g * textProperties.opacity + bgColorRgb.g * (1 - textProperties.opacity)),
+                b: Math.round(tempTextColorRgb.b * textProperties.opacity + bgColorRgb.b * (1 - textProperties.opacity))
+            };
+
+            const L1 = getLuminance(finalTextColorRgb.r, finalTextColorRgb.g, finalTextColorRgb.b);
+            const L2 = getLuminance(bgColorRgb.r, bgColorRgb.g, bgColorRgb.b);
+
+            const contrast = L1 > L2 ? getContrastRatio(L1, L2) : getContrastRatio(L2, L1);
+
+            contrastTextColor.style.backgroundColor = textColorHex;
+            contrastTextColorValue.textContent = `${textColorHex} (Opacity: ${Math.round(textProperties.opacity * 100)}%)`;
+            contrastRatioValue.textContent = contrast.toFixed(2);
+
+            const isLargeText = textProperties.fontSize >= 24 || (textProperties.fontSize >= 18.66 && textProperties.fontWeight >= 700);
+            const wcagAARequirement = isLargeText ? 3.0 : 4.5;
+            const wcagAAARequirement = isLargeText ? 4.5 : 7.0;
+
+            if (contrast >= wcagAARequirement) {
+                wcagAAResult.textContent = `Pass (${wcagAARequirement}:1)`;
+                wcagAAResult.className = 'font-semibold text-green-600';
+            } else {
+                wcagAAResult.textContent = `Fail (${wcagAARequirement}:1)`;
+                wcagAAResult.className = 'font-semibold text-red-600';
+            }
+
+            if (contrast >= wcagAAARequirement) {
+                wcagAAAResult.textContent = `Pass (${wcagAAARequirement}:1)`;
+                wcagAAAResult.className = 'font-semibold text-green-600';
+            } else {
+                wcagAAAResult.textContent = `Fail (${wcagAAARequirement}:1)`;
+                wcagAAAResult.className = 'font-semibold text-red-600';
+            }
+        }
+
+
+        /**
+         * Generates and displays suggested thumbnail previews with different text colors.
+         * Only colors passing WCAG AA and AAA are included.
+         */
+        function generateSuggestedThumbnails() {
+            suggestedThumbnailsContainer.innerHTML = ''; // Clear existing thumbnails
+
+            if (!currentImage.src || !currentImage.complete) {
+                noImageForSuggestions.classList.remove('hidden');
+                return;
+            } else {
+                noImageForSuggestions.classList.add('hidden');
+            }
+
+            const previewWidth = 160;
+            const previewHeight = 90; // Standard 16:9 aspect ratio for thumbnails
+
+            // Use the sampled background color under text for suggestions
+            const bgColorRgb = hexToRgb(sampledBackgroundColorUnderText);
+            const bgLuminance = getLuminance(bgColorRgb.r, bgColorRgb.g, bgColorRgb.b);
+
+            const isLargeText = textProperties.fontSize >= 24 || (textProperties.fontSize >= 18.66 && textProperties.fontWeight >= 700);
+            const wcagAARequirement = isLargeText ? 3.0 : 4.5;
+            const wcagAAARequirement = isLargeText ? 4.5 : 7.0;
+
+            let validSuggestedColors = [];
+
+            // Iterate through all colors to find WCAG AAA compliant ones
+            for (const color of fullPaletteColors) {
+                const tempTextColorRgb = hexToRgb(color.hex);
+                const finalTextColorRgb = {
+                    r: Math.round(tempTextColorRm.r * textProperties.opacity + bgColorRgb.r * (1 - textProperties.opacity)),
+                    g: Math.round(tempTextColorRgb.g * textProperties.opacity + bgColorRgb.g * (1 - textProperties.opacity)),
+                    b: Math.round(tempTextColorRgb.b * textProperties.opacity + bgColorRgb.b * (1 - textProperties.opacity))
+                };
+
+                const L1 = getLuminance(finalTextColorRgb.r, finalTextColorRgb.g, finalTextColorRgb.b);
+                const L2 = getLuminance(bgColorRgb.r, bgColorRgb.g, bgColorRgb.b);
+                const contrast = L1 > L2 ? getContrastRatio(L1, L2) : getContrastRatio(L2, L1);
+
+                if (contrast >= wcagAARequirement && contrast >= wcagAAARequirement) {
+                    validSuggestedColors.push(color);
+                    if (validSuggestedColors.length >= 10) { // Limit to 10 suggestions
+                        break;
+                    }
+                }
+            }
+
+            if (validSuggestedColors.length === 0) {
+                const message = document.createElement('p');
+                message.className = 'text-sm text-gray-500 text-center w-full';
+                message.textContent = 'No colors found that pass WCAG AA and AAA contrast with the current background.';
+                suggestedThumbnailsContainer.appendChild(message);
+                return;
+            }
+
+            validSuggestedColors.forEach(suggestedColor => {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'thumbnail-preview-item';
+
+                const previewCanvas = document.createElement('canvas');
+                previewCanvas.width = previewWidth;
+                previewCanvas.height = previewHeight;
+                const previewCtx = previewCanvas.getContext('2d');
+
+                // Apply blur filter to the preview canvas
+                if (imageProperties.blurAmount > 0) {
+                    previewCtx.filter = `blur(${imageProperties.blurAmount * (previewWidth / canvas.width)}px)`; // Scale blur for preview
+                } else {
+                    previewCtx.filter = 'none';
+                }
+
+                // Draw image on preview canvas (fill/cover approach)
+                const imgAspectRatio = currentImage.width / currentImage.height;
+                const canvasAspectRatio = previewCanvas.width / previewCanvas.height;
+
+                let drawX = 0;
+                let drawY = 0;
+                let drawWidth = previewCanvas.width;
+                let drawHeight = previewCanvas.height;
+
+                if (imgAspectRatio > canvasAspectRatio) {
+                    // Image is wider, scale to height and center horizontally
+                    drawHeight = previewCanvas.height;
+                    drawWidth = currentImage.width * (previewCanvas.height / currentImage.height);
+                    drawX = (previewCanvas.width - drawWidth) / 2;
+                } else {
+                    // Image is taller, scale to width and center vertically
+                    drawWidth = previewCanvas.width;
+                    drawHeight = currentImage.height * (previewCanvas.width / currentImage.width);
+                    drawY = (previewCanvas.height - drawHeight) / 2;
+                }
+                previewCtx.drawImage(currentImage, drawX, drawY, drawWidth, drawHeight);
+
+                // Draw darkening overlay after image on preview canvas
+                if (imageProperties.darkenAmount > 0) {
+                    previewCtx.fillStyle = `rgba(0, 0, 0, ${imageProperties.darkenAmount})`;
+                    previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+                }
+
+                // Reset filter before drawing text on preview canvas
+                previewCtx.filter = 'none';
+
+                // Draw text on preview canvas
+                previewCtx.font = `${textProperties.fontWeight} ${textProperties.fontSize * (previewWidth / canvas.width)}px ${textProperties.fontFamily}`;
+                previewCtx.fillStyle = suggestedColor.hex;
+                previewCtx.globalAlpha = textProperties.opacity;
+                previewCtx.textAlign = 'center';
+                previewCtx.textBaseline = 'middle';
+
+                // Add text shadow for better visibility on previews
+                previewCtx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                previewCtx.shadowBlur = 5;
+                previewCtx.shadowOffsetX = 2;
+                previewCtx.shadowOffsetY = 2;
+
+                const lines = textProperties.content.split('\n');
+                const lineHeightPx = textProperties.fontSize * textProperties.lineHeight * (previewWidth / canvas.width);
+                const totalTextHeight = lines.length * lineHeightPx;
+                const startY = (previewHeight / 2) - (totalTextHeight / 2) + (lineHeightPx / 2);
+
+                lines.forEach((line, index) => {
+                    previewCtx.fillText(line, previewWidth / 2, startY + index * lineHeightPx);
+                });
+                
+                previewCtx.globalAlpha = 1; // Reset alpha
+                previewCtx.shadowColor = 'transparent'; // Reset shadow
+
+                const colorNameSpan = document.createElement('span');
+                colorNameSpan.textContent = suggestedColor.name;
+
+                previewItem.appendChild(previewCanvas);
+                previewItem.appendChild(colorNameSpan);
+                suggestedThumbnailsContainer.appendChild(previewItem);
+
+                // Add hover effect for main canvas and contrast analyzer
+                previewItem.addEventListener('mouseover', () => {
+                    originalTextColorBeforeHover = textProperties.color; // Save current color
+                    textProperties.color = suggestedColor.hex; // Temporarily change color for preview
+                    drawCanvas();
+                    updateContrastAnalyzerUI(suggestedColor.hex); // Update analyzer for hovered color
+                });
+                previewItem.addEventListener('mouseout', () => {
+                    textProperties.color = originalTextColorBeforeHover; // Restore original color
+                    drawCanvas();
+                    updateContrastAnalyzerUI(originalTextColorBeforeHover); // Restore analyzer to original color
+                });
+                previewItem.addEventListener('click', () => {
+                    updateTextColor(suggestedColor.hex); // Permanently set color on click
+                });
+            });
+        }
+
+
+        // Event listeners for color swatches in the bottom palette
+        predefinedColorSwatches.addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.classList.contains('color-swatch') && target.dataset.color) {
+                updateTextColor(target.dataset.color);
+            }
+        });
+
+        // Toggle Text Settings Dropdown
+        textSettingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent click from immediately closing dropdown
+            textSettingsDropdown.classList.toggle('hidden');
+            imageSettingsDropdown.classList.add('hidden'); // Close other dropdown
+        });
+
+        // Toggle Image Settings Dropdown
+        imageSettingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent click from immediately closing dropdown
+            imageSettingsDropdown.classList.toggle('hidden');
+            textSettingsDropdown.classList.add('hidden'); // Close other dropdown
+        });
+
+        // Close dropdowns if clicked outside
+        document.addEventListener('click', (e) => {
+            if (!textSettingsDropdown.contains(e.target) && !textSettingsBtn.contains(e.target)) {
+                textSettingsDropdown.classList.add('hidden');
+            }
+            if (!imageSettingsDropdown.contains(e.target) && !imageSettingsBtn.contains(e.target)) {
+                imageSettingsDropdown.classList.add('hidden');
+            }
+            if (!downloadOptions.contains(e.target) && !downloadBtn.contains(e.target)) {
+                downloadOptions.classList.add('hidden');
+            }
+        });
+
+
+        // Initialize the canvas and draw on window load
+        window.onload = () => {
+            initializeCanvas();
+            updateAllUIControls(); // Call this to set initial UI values
+            updateColorPalette(); // Populate the full color palette
+            // checkContrast() is now called by drawCanvas()
+            generateSuggestedThumbnails(); // Generate initial suggestions
+            updateLockStatusUI(); // Set initial lock status UI
+            loadRecentImages(); // Load and display recent images
+        };
+    </script>
+</body>
+</html>

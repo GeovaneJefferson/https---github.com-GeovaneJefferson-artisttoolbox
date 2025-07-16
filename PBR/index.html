@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creative Toolbox</title>
+    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <style src="styles.css"></style>
+    
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="bg-white shadow-sm p-3 flex items-center justify-between border-b border-gray-200">
+        <div class="flex items-center space-x-4">
+            <div class="relative">
+                <button id="toolsButton" class="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    Tools
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div id="toolsDropdown" class="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-lg py-1 w-48 hidden z-10">
+                    <a href="#" class="block px-4 py-2 text-xs text-gray-800 hover:bg-gray-100 rounded-md">PBR</a>
+                    <a href="#" class="block px-4 py-2 text-xs text-gray-800 hover:bg-gray-100 rounded-md">Animation</a>
+                </div>
+            </div>
+            <div class="relative">
+                <button id="actionsButton" class="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Actions
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div id="actionsDropdown" class="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-lg py-1 w-48 hidden z-10">
+                    <a href="#" id="makeSeamlessOption" class="block px-4 py-2 text-gray-800 text-xs hover:bg-gray-100 rounded-md flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Make Seamless
+                    </a>
+                    <!-- <a href="#" class="block px-4 py-2 text-gray-800 hover:bg-gray-100 rounded-md flex items-center" id="make3DMeshOption">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4m0-10h.01"></path>
+                        </svg>
+                        Make 3D Mesh
+                    </a> -->
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <div id="donationGoalSection" class="flex flex-col items-start px-2 py-1.5 bg-gray-100 rounded-lg shadow-sm w-42">
+                <div class="flex items-center gap-1 text-xs w-full">
+                    <span class="font-semibold text-gray-700">Goal:</span>
+                    <span id="incomeText" class="income-text">$0 / $100</span>
+                    <span id="percentageText" class="percentage-text ml-auto">0%</span>
+                </div>
+                <div class="income-progress-container w-full">
+                    <div id="incomeProgressBar" class="income-progress-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <button class="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all duration-200">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                </svg>
+                Support
+            </button>
+
+            <button id="exportMeshButton" class="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all duration-200">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export
+            </button>
+            <button id="resetCameraButton" class="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-lg shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all duration-200">
+                Reset Camera
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col justify-center">
+        <div class="px-2 flex w-full space-x-2 flex-grow main-content-scroll">
+            <!-- Left Column - Now with fixed width and scroll if needed -->
+            <div class="min-w-72 max-w-72 bg-white rounded-lg shadow-md p-2 flex flex-col items-center left-column-scroll">
+                <div class="w-full mt-2">
+                    <h3 class="text-sm font-semibold text-gray-800 mb-4">Texture</h3>
+                </div>
+
+                <div id="uploadArea" class="w-full border-2 border-dashed border-gray-300 rounded-lg p-0 text-center text-xs mb-6 bg-gray-50 hover:border-blue-400 transition-colors duration-200 cursor-pointer relative overflow-hidden flex items-center justify-center">
+                    <div id="uploadInstructions" class="p-8">
+                        <p class="text-gray-500 mb-1">Drag &amp; drop image or click to upload</p>
+                        <p id="uploadStatusText" class="text-gray-400 text-xs">No image selected.</p>
+                    </div>
+                    <img id="imagePreview" src="" alt="Image Preview" class="absolute inset-0 w-full h-full object-cover hidden">
+                    <canvas id="originalCanvas"></canvas>
+                    <input type="file" class="hidden" id="imageUpload">
+                </div>
+
+                <!-- Recents Section -->
+                <div id="recentTexturesSection" class="w-full mb-4">
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Recents</h4>
+                    <div id="recentTextures" class="flex flex-wrap gap-2">
+                        <!-- Recent texture thumbnails will be inserted here -->
+                        <p class="text-gray-400 text-xs" id="noRecentTextures">No recent textures.</p>
+                    </div>
+                </div>
+
+                <div class="w-full mt-6 controls-group">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-semibold text-gray-700">Color Palette</h3>
+                        <span id="numColorsValue" class="text-sm text-gray-600">5 Colors</span>
+                    </div>
+                    <input type="range" id="numColorsSlider" min="1" max="8" value="5" step="1" class="w-full mb-3">
+                    <div id="extractedColorPalette" class="color-palette w-full min-h-[70px] bg-gray-100 border border-gray-300 rounded-lg p-4 flex items-center justify-center flex-wrap gap-2">
+                        <!-- Color swatches will be inserted here -->
+                        <p class="text-center w-full text-gray-500 text-xs">Upload an image to see its palette.</p>
+                    </div>
+                </div>
+
+                <div class="w-full mt-6">
+                    <h3 class="text-sm font-semibold text-gray-800 mb-4">Styles</h3>
+                    <div class="flex space-x-4">
+                        <button id="originalButton" class="flex-1 px-4 py-3 bg-gray-400 text-white text-xs font-medium rounded-lg shadow-md hover:bg-gray-500 transition-colors duration-200">
+                            Original
+                        </button>
+                        <button id="pixelateButton" class="flex-1 px-4 py-3 bg-blue-500 text-white text-xs font-medium rounded-lg shadow-md hover:bg-blue-600 transition-colors duration-200">
+                            Pixelate
+                        </button>
+                        <button id="graphicNovelButton" class="flex-1 px-4 py-3 bg-gray-300 text-white text-xs font-medium rounded-lg shadow-md transition-colors duration-200">
+                            Graphic Novel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Place this just after the Pixelate button in your Styles section -->
+                <div id="pixelateControls" class="w-full mt-2 flex flex-col items-center hidden">
+                    <label class="text-xs text-gray-700 mb-1" for="pixelateSizeRange">
+                        Pixel Size: <span id="pixelateSizeValue">112</span> px
+                    </label>
+                    <input type="range" id="pixelateSizeRange" min="4" max="225" value="112" step="4" class="w-full">
+                    <div class="flex justify-end mt-2 w-full">
+                        <button id="resetPixelateButton" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-150 text-sm">Reset</button>
+                    </div>
+                </div>
+
+                <!-- Graphic Novel Controls (New) -->
+                <div id="graphicNovelControls" class="w-full mt-2 flex flex-col items-center hidden">
+                    <div class="w-full mb-3">
+                        <label class="block text-xs text-gray-700 mb-1" for="outlineStrengthRange">
+                            Outline Strength: <span id="outlineStrengthValue">1.0</span>
+                        </label>
+                        <input type="range" id="outlineStrengthRange" min="0.0" max="5.0" value="1.0" step="0.1" class="w-full">
+                    </div>
+                    <div class="w-full mb-3">
+                        <label class="block text-xs text-gray-700 mb-1" for="colorReductionRange">
+                            Color Reduction: <span id="colorReductionValue">32</span>
+                        </label>
+                        <input type="range" id="colorReductionRange" min="2" max="64" value="32" step="2" class="w-full">
+                    </div>
+                </div>
+
+                <!-- Vibrant HDR Controls (New) -->
+                <div id="vibrantHDRControls" class="w-full mt-2 flex flex-col items-center hidden">
+                    <div class="w-full mb-3">
+                        <label class="block text-xs text-gray-700 mb-1" for="hdrExposureRange">
+                            Exposure: <span id="hdrExposureValue">1.0</span>
+                        </label>
+                        <input type="range" id="hdrExposureRange" min="0.1" max="5.0" value="1.0" step="0.1" class="w-full">
+                    </div>
+                    <div class="w-full mb-3">
+                        <label class="block text-xs text-gray-700 mb-1" for="hdrContrastRange">
+                            Contrast: <span id="hdrContrastValue">1.0</span>
+                        </label>
+                        <input type="range" id="hdrContrastRange" min="0.1" max="3.0" value="1.0" step="0.1" class="w-full">
+                    </div>
+                    <div class="flex justify-end mt-2">
+                        <button id="resetHDRButton" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-150 text-sm">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Column (Bigger) - Now flex-1 to fill remaining space -->
+            <div class="flex-1 bg-white rounded-lg shadow-md p-0 flex flex-col items-center">
+                <div id="threeJsContainer" class="w-full flex-grow bg-gray-200 rounded-lg overflow-hidden relative">
+                    <canvas id="threeJsCanvas" class="w-full h-full"></canvas>
+                        <div class="absolute top-4 right-4 flex flex-col space-y-2 bg-gray-100 p-2 rounded-lg shadow-md z-10">
+                            <button id="pbrMapButton" class="w-16 h-16 rounded-lg bg-gray-700 flex items-center justify-center overflow-hidden texture-button" data-map-type="pbr">
+                                <img src="https://placehold.co/48x48/6366F1/FFFFFF?text=PBR" alt="PBR Preview" class="w-full h-full object-cover">
+                            </button>
+                            <button id="colorMapButton" class="w-16 h-16 rounded-lg bg-gray-700 flex items-center justify-center overflow-hidden texture-button" data-map-type="color">
+                                <img src="https://placehold.co/48x48/AAAAAA/000000?text=Color" alt="Color Map" class="w-full h-full object-cover">
+                            </button>
+                            <button id="roughnessMapButton" class="w-16 h-16 rounded-lg bg-gray-700 flex items-center justify-center overflow-hidden texture-button" data-map-type="roughness">
+                                <img src="https://placehold.co/48x48/D3D3D3/000000?text=Rough" alt="Roughness Map" class="w-full h-full object-cover">
+                            </button>
+                            <button id="normalMapButton" class="w-16 h-16 rounded-lg bg-gray-700 flex items-center justify-center overflow-hidden texture-button" data-map-type="normal">
+                                <img src="https://placehold.co/48x48/6A5ACD/FFFFFF?text=Normal" alt="Normal Map" class="w-full h-full object-cover">
+                            </button>
+                            <button id="aoMapButton" class="w-16 h-16 rounded-lg bg-gray-700 flex items-center justify-center overflow-hidden texture-button" data-map-type="ao">
+                                <img src="https://placehold.co/48x48/36454F/FFFFFF?text=AO" alt="AO Map" class="w-full h-full object-cover">
+                            </button>
+                            <button id="metallicMapButton" class="w-16 h-16 rounded-lg bg-gray-700 flex items-center justify-center overflow-hidden texture-button" data-map-type="metallic">
+                                <img src="https://placehold.co/48x48/C0C0C0/000000?text=Metal" alt="Metallic Map" class="w-full h-full object-cover">
+                            </button>
+                            <button id="displacementMapButton" class="w-16 h-16 rounded-lg bg-gray-700 flex items-center justify-center overflow-hidden texture-button" data-map-type="displacement">
+                                <img src="https://placehold.co/48x48/808080/FFFFFF?text=Disp" alt="Displacement Map" class="w-full h-full object-cover">
+                            </button>
+                        </div>
+                    <!-- Container for settings overlays -->
+                    <div id="mapSettingsWrapper" class="absolute top-4 right-20 flex flex-col space-y-2 z-10">
+                        <!-- All map overlays will be moved here -->
+                        <div id="normalMapOverlay" class="map-settings-panel">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-semibold text-gray-800">Normal Map Settings</span>
+                                <button id="closeNormalMapOverlay" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+                            </div>
+                            <div class="text-xs text-gray-500 mb-2">0.0 = flat, 1.0 = max bump</div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="normalStrengthSlider">Strength: <span id="normalStrengthValue">0.50</span></label>
+                                <input type="range" id="normalStrengthSlider" min="0.0" max="1.0" step="0.01" value="0.5" class="w-full">
+                            </div>
+                            <div class="mb-2 flex items-center">
+                                <input type="checkbox" id="invertNormalY" class="mr-2">
+                                <label for="invertNormalY" class="text-sm text-gray-700">Invert Y</label>
+                            </div>
+                            <div class="flex justify-end mt-2">
+                                <button id="resetNormalButton" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-150 text-sm">Reset</button>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-xs font-semibold text-gray-700 mb-2">Normal Map Preview</h4>
+                                <canvas id="normalMapPreviewCanvas" class="w-full h-36 border border-gray-300 rounded-md bg-gray-100"></canvas>
+                            </div>
+                        </div>
+
+                        <div id="roughnessMapOverlay" class="map-settings-panel">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-semibold text-gray-800">Roughness Map Settings</span>
+                                <button id="closeRoughnessMapOverlay" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+                            </div>
+                            <div class="text-xs text-gray-500 mb-2">0.0 = smooth, 1.0 = rough</div>
+                            <div class="mb-3">
+                                <input type="checkbox" id="roughnessInvertRange" class="mr-2">
+                                <label for="roughnessInvertRange" class="text-sm text-gray-700">Invert Grayscale</label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="roughnessStrengthSlider">Strength: <span id="roughnessStrengthValue">0.50</span></label>
+                                <input type="range" id="roughnessStrengthSlider" min="0.0" max="1.0" step="0.01" value="0.5" class="w-full">
+                            </div>
+                            <div class="flex justify-end mt-2">
+                                <button id="resetRoughnessButton" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-150 text-sm">Reset</button>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-xs font-semibold text-gray-700 mb-2">Roughness Map Preview</h4>
+                                <canvas id="roughnessMapPreviewCanvas" class="w-full h-36 border border-gray-300 rounded-md bg-gray-100"></canvas>
+                            </div>
+                        </div>
+
+                        <div id="aoMapOverlay" class="map-settings-panel">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-semibold text-gray-800">AO Map Settings</span>
+                                <button id="closeAoMapOverlay" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+                            </div>
+                            <div class="text-xs text-gray-500 mb-2">0.0 = full shadow, 1.0 = no shadow</div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="aoStrengthSlider">Strength: <span id="aoStrengthValue">0.50</span></label>
+                                <input type="range" id="aoStrengthSlider" min="0.0" max="1.0" step="0.01" value="0.50" class="w-full">
+                            </div>
+                            <div class="mb-2 flex items-center">
+                                <input type="checkbox" id="aoInvertRange" class="mr-2">
+                                <label for="aoInvertRange" class="text-sm text-gray-700">Invert Grayscale</label>
+                            </div>
+                            <div class="flex justify-end mt-2">
+                                <button id="resetAOButton" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-150 text-sm">Reset</button>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-xs font-semibold text-gray-700 mb-2">AO Map Preview</h4>
+                                <canvas id="aoMapPreviewCanvas" class="w-full h-36 border border-gray-300 rounded-md bg-gray-100"></canvas>
+                            </div>
+                        </div>
+
+                        <div id="metallicMapOverlay" class="map-settings-panel">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-semibold text-gray-800">Metallic Map Settings</span>
+                                <button id="closeMetallicMapOverlay" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+                            </div>
+                            <div class="text-xs text-gray-500 mb-2">0.0 = non-metal, 1.0 = full metal</div>
+                            <div class="mb-3">
+                                <input type="checkbox" id="metallicInvertRange" class="mr-2">
+                                <label for="metallicInvertRange" class="text-sm text-gray-700">Invert Grayscale</label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="metalnessStrengthSlider">Strength: <span id="metallicStrengthValue">0.50</span></label>
+                                <input type="range" id="metalnessStrengthSlider" min="0.0" max="1.0" step="0.01" value="0.5" class="w-full">
+                            </div>
+                            <div class="flex justify-end mt-2">
+                                <button id="resetMetallicMap" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-150 text-sm">Reset</button>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-xs font-semibold text-gray-700 mb-2">Metallic Map Preview</h4>
+                                <canvas id="metallicMapPreviewCanvas" class="w-full h-36 border border-gray-300 rounded-md bg-gray-100"></canvas>
+                            </div>
+                        </div>
+
+                        <div id="displacementMapOverlay" class="map-settings-panel">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-semibold text-gray-800">Displacement Map Settings</span>
+                                <button id="closeDisplacementMapOverlay" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+                            </div>
+                            <div class="text-xs text-gray-500 mb-2">0.0 = no displacement, 1.0 = max displacement</div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="displacementStrengthRange">Strength: <span id="displacementStrengthValue">0.50</span></label>
+                                <input type="range" id="displacementStrengthRange" min="0.0" max="1.0" step="0.01" value="0.50" class="w-full">
+                            </div>
+                                <div class="mb-2 flex items-center">
+                                <input type="checkbox" id="deformMeshCheckbox" class="mr-2" checked>
+                                <label for="deformMeshCheckbox" class="text-sm text-gray-700">Deform Mesh</label>
+                            </div>
+                            <div class="mb-2 flex items-center">
+                                <input type="checkbox" id="displacementInvertRange" class="mr-2">
+                                <label for="displacementInvertRange" class="text-sm text-gray-700">Invert Grayscale</label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="meshSegmentsSelect">Mesh Segments:</label>
+                                <select id="meshSegmentsSelect" class="w-full rounded border-gray-300 bg-gray-100 text-gray-700 py-1.5 px-2">
+                                    <option value="32">32</option>
+                                    <option value="64" selected>64</option>
+                                    <option value="128">128</option>
+                                    <option value="256">256</option>
+                                    <option value="512">512</option>
+                                </select>
+                            </div>
+                            <div class="flex justify-end mt-2">
+                                <button id="resetDisplacementMap" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-150 text-sm">Reset</button>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-xs font-semibold text-gray-700 mb-2">Displacement Map Preview</h4>
+                                <canvas id="displacementMapPreviewCanvas" class="w-full h-36 border border-gray-300 rounded-md bg-gray-100"></canvas>
+                            </div>
+                        </div>
+
+                        <div id="colorMapOverlay" class="map-settings-panel">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-semibold text-gray-800">Color Map Settings</span>
+                                <button id="closeColorMapOverlay" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="hueSlider">Hue: <span id="hueValue">0</span></label>
+                                <input type="range" id="hueSlider" min="-180" max="180" step="1" value="0" class="w-full">
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="saturationSlider">Saturation: <span id="saturationValue">100</span></label>
+                                <input type="range" id="saturationSlider" min="0" max="200" step="1" value="100" class="w-full">
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="brightnessSlider">Brightness: <span id="brightnessValue">100</span></label>
+                                <input type="range" id="brightnessSlider" min="0" max="200" step="1" value="100" class="w-full">
+                            </div>
+                            <div class="mb-3">
+                                <label class="block text-sm text-gray-700 mb-1" for="colorIntensitySlider">Intensity: <span id="colorIntensityValue">1.00</span></label>
+                                <input type="range" id="colorIntensitySlider" min="0.0" max="1.0" step="0.01" value="1.0" class="w-full">
+                            </div>
+                            <div class="mb-2 flex items-center">
+                                <input type="checkbox" id="invertColorCheckbox" class="mr-2">
+                                <label for="invertColorCheckbox" class="text-sm text-gray-700">Invert Colors</label>
+                            </div>
+                            <div class="flex justify-end mt-2">
+                                <button id="resetColorMap" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors duration-150 text-sm">Reset</button>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="text-xs font-semibold text-gray-700 mb-2">Color Map Preview</h4>
+                                <canvas id="colorMapPreviewCanvas" class="w-full h-36 border border-gray-300 rounded-md bg-gray-100"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+          </div>
+    </main>
+
+    <div id="seamlessModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-semibold text-gray-800">Make Seamless Options</h3>
+                <button id="closeSeamlessModal" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="w-full mb-8">
+                <div class="mb-5">
+                    <label for="modalMethodSelect" class="block text-gray-700 font-medium mb-2">Method:</label>
+                    <div class="relative">
+                        <select id="modalMethodSelect" class="block w-full bg-gray-100 border border-gray-300 text-gray-700 py-2 px-3 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-indigo-500 appearance-none">
+                        <option value="blend">Blend (Scattered Edges)</option>
+                        <option value="mirror">Mirror (9-slice)</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-5">
+                    <label for="modalRadiusRange" class="block text-gray-700 font-medium mb-2 flex justify-between items-center">
+                        <span>Radius:</span>
+                        <span id="modalRadiusValue" class="text-gray-600">5</span>
+                    </label>
+                    <input type="range" id="modalRadiusRange" min="0" max="100" value="5" class="w-full">
+                </div>
+
+                <div class="mb-8">
+                    <label for="modalIntensityRange" class="block text-gray-700 font-medium mb-2 flex justify-between items-center">
+                        <span>Intensity:</span>
+                        <span id="modalIntensityValue" class="text-gray-600">100</span>
+                    </label>
+                    <input type="range" id="modalIntensityRange" min="0" max="100" value="100" class="w-full">
+                </div>
+
+                <!-- Seamless Preview Canvas -->
+                <div class="mb-4">
+                    <h4 class="text-sm font-semibold text-gray-800 mb-2">Seamless Preview (2x2 Tile)</h4>
+                    <canvas id="seamlessPreviewCanvas" class="w-full h-48 border border-gray-300 rounded-lg bg-gray-100"></canvas>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200" id="cancelSeamless">Cancel</button>
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this just before </body> -->
+    <div id="exportModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-xs mx-auto">
+        <h3 class="text-lg font-semibold mb-4">Texture Options</h3>
+        <form id="exportTexturesForm" class="flex flex-col gap-2 mb-4">
+          <label><input type="checkbox" name="color" checked> Albedo (color)</label>
+          <label><input type="checkbox" name="normal" checked> Normal</label>
+          <label><input type="checkbox" name="roughness" checked> Roughness</label>
+          <label><input type="checkbox" name="metallic" checked> Metallic</label>
+          <label><input type="checkbox" name="ao" checked> AO</label>
+          <label><input type="checkbox" name="displacement" checked> Displacement</label>
+        </form>
+
+        <h3 class="text-lg font-semibold mb-4">Mesh Options</h3>
+        <div class="flex flex-col gap-2 mb-4">
+            <label><input type="checkbox" name="includeGlbMesh" id="includeGlbMesh" checked> Include .glb 3D mesh</label>
+        </div>
+
+        <div class="mb-3">
+            <label class="block text-sm font-medium mb-1" for="exportTextureSize">Re-scale Texture</label>
+            <select id="exportTextureSize" class="w-full rounded border-gray-300">
+                <option value="original" selected>Keep Original Size</option>
+                <option value="32">32 px</option>
+                <option value="64">64 px</option>
+                <option value="128">128 px</option>
+                <option value="256">256 px</option>
+                <option value="512">512 px</option>
+                <option value="1024">1024 px</option>
+            </select>
+            <div class="text-xs text-gray-500 mt-1">Aspect ratio is preserved.</div>
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <button id="cancelExportModal" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+          <button id="confirmExportModal" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">Export</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
